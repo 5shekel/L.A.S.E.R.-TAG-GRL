@@ -1,0 +1,31 @@
+{
+  "name": "laser-tag-web",
+  "version": "1.0.0",
+  "description": "L.A.S.E.R. TAG - Browser-based laser graffiti system",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tweakpane/plugin-essentials": "^0.2.1",
+    "gl-matrix": "^3.4.3",
+    "lil-gui": "^0.19.2",
+    "opencv.js": "^1.2.1",
+    "tweakpane": "^4.0.5"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  },
+  "keywords": [
+    "laser",
+    "graffiti",
+    "art",
+    "interactive",
+    "opencv",
+    "computer-vision"
+  ],
+  "author": "Graffiti Research Lab",
+  "license": "MIT"
+}

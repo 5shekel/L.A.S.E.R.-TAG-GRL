@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>L.A.S.E.R. TAG</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #000;
+      color: #fff;
+      font-family: 'Courier New', monospace;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+
+    .main-view {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .canvas-container {
+      flex: 1;
+      position: relative;
+      background: #111;
+    }
+
+    #projector-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #debug-canvas {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 320px;
+      height: 240px;
+      border: 1px solid #333;
+      background: #000;
+      z-index: 10;
+    }
+
+    .sidebar {
+      width: 320px;
+      background: #1a1a1a;
+      border-left: 1px solid #333;
+      padding: 10px;
+      overflow-y: auto;
+    }
+
+    .status-bar {
+      height: 30px;
+      background: #222;
+      border-top: 1px solid #333;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      font-size: 12px;
+      color: #888;
+    }
+
+    .status-bar span {
+      margin-right: 20px;
+    }
+
+    .status-bar .active {
+      color: #0f0;
+    }
+
+    .status-bar .warning {
+      color: #ff0;
+    }
+
+    .status-bar .error {
+      color: #f00;
+    }
+
+    #video-element {
+      display: none;
+    }
+
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .loading-overlay.hidden {
+      display: none;
+    }
+
+    .loading-overlay h1 {
+      font-size: 48px;
+      margin-bottom: 20px;
+      color: #0ff;
+      text-shadow: 0 0 20px #0ff;
+    }
+
+    .loading-overlay p {
+      font-size: 16px;
+      color: #888;
+      margin-bottom: 20px;
+    }
+
+    .loading-overlay button {
+      padding: 15px 40px;
+      font-size: 18px;
+      background: #0ff;
+      color: #000;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: bold;
+    }
+
+    .loading-overlay button:hover {
+      background: #0aa;
+    }
+
+    .loading-overlay .error-message {
+      color: #f66;
+      margin-top: 20px;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    /* Calibration overlay */
+    .calibration-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .calibration-overlay.active {
+      pointer-events: auto;
+    }
+
+    .calibration-point {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #0ff;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      cursor: move;
+      background: rgba(0, 255, 255, 0.2);
+    }
+
+    .calibration-point:hover {
+      background: rgba(0, 255, 255, 0.5);
+    }
+
+    .calibration-point::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 4px;
+      height: 4px;
+      background: #0ff;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+  </style>
+</head>
+<body>
+  <!-- Hidden video element for camera feed -->
+  <video id="video-element" autoplay playsinline></video>
+
+  <!-- Loading/Start overlay -->
+  <div id="loading-overlay" class="loading-overlay">
+    <h1>L.A.S.E.R. TAG</h1>
+    <p>Browser-based laser graffiti system</p>
+    <button id="start-button">START</button>
+    <p id="loading-status"></p>
+    <p id="error-message" class="error-message"></p>
+  </div>
+
+  <!-- Main application container -->
+  <div class="container">
+    <div class="main-view">
+      <div class="canvas-container">
+        <!-- Main projection canvas -->
+        <canvas id="projector-canvas"></canvas>
+
+        <!-- Debug/tracking preview canvas -->
+        <canvas id="debug-canvas"></canvas>
+
+        <!-- Calibration overlay -->
+        <div id="calibration-overlay" class="calibration-overlay"></div>
+      </div>
+
+      <div class="status-bar">
+        <span id="status-tracking">Tracking: <span class="warning">OFF</span></span>
+        <span id="status-fps">FPS: <span>0</span></span>
+        <span id="status-position">Position: <span>--</span></span>
+        <span id="status-brush">Brush: <span>Vector</span></span>
+      </div>
+    </div>
+
+    <!-- Sidebar for lil-gui -->
+    <div class="sidebar" id="gui-container"></div>
+  </div>
+
+  <!-- OpenCV.js loaded locally for offline support -->
+  <script async src="/lib/opencv.js" onload="window.cvReady = true;"></script>
+
+  <!-- Main application -->
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -28,10 +28,12 @@ export class VectorBrush extends BaseBrush {
       dripsWidth: 1          // 1-25, line thickness
     };
 
-    // Drip particles (active drips)
+    // Drip particles (active drips) - each has strokeIndex
     this.drips = [];
-    // Drip trails for current stroke only
+    // Drip trails - each has strokeIndex for proper layering
     this.dripTrails = [];
+    // Counter for stroke ordering
+    this.strokeCounter = 0;
 
     // Background canvas for finalized/baked content
     this.backgroundCanvas = null;
@@ -59,13 +61,15 @@ export class VectorBrush extends BaseBrush {
     // Bake all previous content to background before starting new stroke
     this.bakeToBackground();
 
+    this.strokeCounter++;
     this.currentStroke = {
       points: [{ x, y, time: Date.now() }],
       color: { ...this.params.color },
       width: this.params.brushWidth,
       opacity: this.params.opacity,
       mode: this.params.mode,  // Store mode with stroke
-      shadowColor: this.params.shadowColor  // Store shadow color with stroke
+      shadowColor: this.params.shadowColor,  // Store shadow color with stroke
+      strokeIndex: this.strokeCounter  // For layering with drips
     };
     this.strokes.push(this.currentStroke);
   }
@@ -102,7 +106,8 @@ export class VectorBrush extends BaseBrush {
           y1: drip.y,
           width: drip.width,
           color: { ...drip.color },
-          opacity: drip.opacity
+          opacity: drip.opacity,
+          strokeIndex: drip.strokeIndex
         });
       }
     }
@@ -623,7 +628,8 @@ export class VectorBrush extends BaseBrush {
       width: this.params.dripsWidth,  // Use drip-specific width
       color: dripColor,
       opacity: colorOverride ? 0.7 : this.params.opacity,  // Shadow drips slightly transparent
-      active: true
+      active: true,
+      strokeIndex: this.currentStroke ? this.currentStroke.strokeIndex : this.strokeCounter
     });
   }
 
@@ -683,7 +689,8 @@ export class VectorBrush extends BaseBrush {
         y1: drip.y,
         width: drip.width,
         color: { ...drip.color },
-        opacity: drip.opacity
+        opacity: drip.opacity,
+        strokeIndex: drip.strokeIndex
       });
     }
   }
@@ -717,7 +724,7 @@ export class VectorBrush extends BaseBrush {
 
   /**
    * Redraw all strokes from scratch
-   * Strokes are drawn in creation order, with C++ shadows rendered first for each C++ stroke
+   * Strokes are drawn in creation order, with drip trails drawn with their parent stroke
    */
   redraw() {
     // Clear canvas (transparent for compositing)
@@ -732,10 +739,11 @@ export class VectorBrush extends BaseBrush {
     const validStrokes = this.strokes.filter(s => s.points.length >= 2);
 
     // Draw strokes in creation order
-    // For each stroke: if C++, draw shadow first, then main stroke
+    // For each stroke: draw stroke, then its drip trails
     for (const stroke of validStrokes) {
       const mode = stroke.mode || 'smooth';
       const isCpp = cppModes.includes(mode);
+      const strokeIdx = stroke.strokeIndex;
 
       if (isCpp) {
         // Draw shadow first for this C++ stroke
@@ -769,10 +777,34 @@ export class VectorBrush extends BaseBrush {
           }
         }
       }
+
+      // Draw drip trails that belong to this stroke
+      this.drawDripTrailsForStroke(this.ctx, strokeIdx);
     }
 
-    // Draw drip trails on top
-    this.drawDripTrails(this.ctx);
+    // Draw any orphan drip trails (from strokes already baked)
+    this.drawDripTrailsForStroke(this.ctx, null);
+  }
+
+  /**
+   * Draw drip trails for a specific stroke (or orphans if strokeIdx is null)
+   */
+  drawDripTrailsForStroke(ctx, strokeIdx) {
+    for (const trail of this.dripTrails) {
+      const matches = strokeIdx === null
+        ? (trail.strokeIndex === undefined || !this.strokes.some(s => s.strokeIndex === trail.strokeIndex))
+        : trail.strokeIndex === strokeIdx;
+
+      if (matches) {
+        ctx.beginPath();
+        ctx.moveTo(trail.x0, trail.y0);
+        ctx.lineTo(trail.x1, trail.y1);
+        ctx.strokeStyle = `rgba(${trail.color.r}, ${trail.color.g}, ${trail.color.b}, ${trail.opacity})`;
+        ctx.lineWidth = trail.width;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+      }
+    }
   }
 
   /**
@@ -912,6 +944,7 @@ export class VectorBrush extends BaseBrush {
     super.clear();
     this.drips = [];
     this.dripTrails = [];
+    this.strokeCounter = 0;
     // Clear background canvas
     if (this.backgroundCtx) {
       this.backgroundCtx.clearRect(0, 0, this.backgroundCanvas.width, this.backgroundCanvas.height);

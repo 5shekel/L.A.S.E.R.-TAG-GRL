@@ -2,7 +2,8 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   root: '.',
-  base: './',
+  // Use repository name for GitHub Pages, or './' for local/other hosting
+  base: process.env.GITHUB_PAGES ? '/L.A.S.E.R.-TAG-GRL/' : './',
   server: {
     port: 3000,
     open: true,
@@ -13,9 +14,9 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
-    sourcemap: true
+    sourcemap: false  // Smaller builds for production
   },
   optimizeDeps: {
-    include: ['lil-gui', 'gl-matrix']
+    include: ['tweakpane', '@tweakpane/plugin-essentials', 'gl-matrix']
   }
 });

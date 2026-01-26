@@ -18,7 +18,12 @@ export class VectorBrush extends BaseBrush {
       smoothing: 0.3,        // Line smoothing factor
       mode: 'smooth',        // 'smooth', 'ribbon', 'glow', 'neon'
       glowIntensity: 0.5,
-      dripsEnabled: false
+      // Drip parameters (inverted from original so higher = more drips)
+      dripsEnabled: true,
+      dripsFrequency: 30,    // 1-120, higher = more drips
+      dripsSpeed: 0.3,       // 0.0-12.0, movement speed
+      dripsDirection: 0,     // 0=south, 1=west, 2=north, 3=east
+      dripsWidth: 1          // 1-25, line thickness
     };
 
     // Drip particles
@@ -63,9 +68,15 @@ export class VectorBrush extends BaseBrush {
       // Render the new segment immediately
       this.renderSegment(points.length - 1);
 
-      // Maybe spawn drip
-      if (this.params.dripsEnabled && velocity < 0.1 && Math.random() < 0.02) {
-        this.spawnDrip(x, y);
+      // Drip spawning - inverted from C++ so higher frequency = more drips
+      // C++ used: ofRandom(0,freq) > freq-1 (higher freq = fewer drips)
+      // We use: probability = freq/maxFreq (higher freq = more drips)
+      if (this.params.dripsEnabled) {
+        const maxFreq = 120;
+        const probability = this.params.dripsFrequency / maxFreq;
+        if (Math.random() < probability) {
+          this.spawnDrip(x, y);
+        }
       }
     }
   }
@@ -208,46 +219,119 @@ export class VectorBrush extends BaseBrush {
   }
 
   /**
-   * Spawn a drip particle
+   * Spawn a drip - based on original L.A.S.E.R. TAG drips.cpp
+   * Drips travel a set distance with deceleration, drawing continuous lines
+   * Supports 4 directions: 0=south, 1=west, 2=north, 3=east
    */
   spawnDrip(x, y) {
+    const direction = this.params.dripsDirection;
+    const speed = this.params.dripsSpeed;
+
+    // Calculate max length based on direction and available space
+    let maxLength = 0;
+    if (direction === 0) {        // south
+      maxLength = this.height - y;
+    } else if (direction === 1) { // west
+      maxLength = x;
+    } else if (direction === 2) { // north
+      maxLength = y;
+    } else if (direction === 3) { // east
+      maxLength = this.width - x;
+    }
+
+    if (maxLength < 10) return;
+
+    // Random length up to 1/3 of available space (like original)
+    let length = Math.random() * (maxLength / 3);
+    length *= 0.75;
+    length = Math.max(20, Math.min(150, length)); // Clamp to reasonable range
+
+    // Calculate velocity based on direction
+    let vx = 0, vy = 0;
+    if (direction === 0) {        // south
+      vy = speed;
+    } else if (direction === 1) { // west
+      vx = -speed;
+    } else if (direction === 2) { // north
+      vy = -speed;
+    } else if (direction === 3) { // east
+      vx = speed;
+    }
+
     this.drips.push({
-      x,
-      y,
-      vy: 0,
-      width: this.params.brushWidth * (0.3 + Math.random() * 0.4),
+      x: x,
+      y: y,
+      prevX: x,
+      prevY: y,
+      vx: vx,
+      vy: vy,
+      distance: 0,
+      maxDistance: length,
+      width: this.params.dripsWidth,  // Use drip-specific width
       color: { ...this.params.color },
       opacity: this.params.opacity,
-      life: 1
+      active: true
     });
   }
 
   /**
-   * Update and render drips
+   * Update and render drips - draws continuous lines like paint dripping
+   * Based on original drips.cpp physics
    */
   updateDrips() {
-    const gravity = 0.5;
-    const decay = 0.995;
+    const ctx = this.ctx;
 
     for (let i = this.drips.length - 1; i >= 0; i--) {
       const drip = this.drips[i];
 
-      // Update physics
-      drip.vy += gravity;
-      drip.y += drip.vy;
-      drip.life *= decay;
-      drip.width *= 0.998;
-
-      // Draw drip
-      if (drip.life > 0.01 && drip.y < this.height) {
-        this.ctx.beginPath();
-        this.ctx.arc(drip.x, drip.y, drip.width / 2, 0, Math.PI * 2);
-        this.ctx.fillStyle = `rgba(${drip.color.r}, ${drip.color.g}, ${drip.color.b}, ${drip.opacity * drip.life})`;
-        this.ctx.fill();
-      } else {
-        // Remove dead drip
+      if (!drip.active) {
         this.drips.splice(i, 1);
+        continue;
       }
+
+      // Store previous position
+      drip.prevX = drip.x;
+      drip.prevY = drip.y;
+
+      // Update distance traveled
+      drip.distance += Math.abs(drip.vx) + Math.abs(drip.vy);
+
+      // Check if we've reached the target
+      if (drip.distance >= drip.maxDistance) {
+        drip.active = false;
+        continue;
+      }
+
+      // Deceleration when approaching end (last 24 pixels)
+      if (drip.maxDistance - drip.distance < 24) {
+        drip.vx *= 0.987;
+        drip.vy *= 0.987;
+
+        // Stop if velocity is negligible
+        if (Math.abs(drip.vx) < 0.01 && Math.abs(drip.vy) < 0.01) {
+          drip.active = false;
+          continue;
+        }
+      }
+
+      // Update position
+      drip.x += drip.vx;
+      drip.y += drip.vy;
+
+      // Clamp to canvas bounds
+      if (drip.x < 0 || drip.x >= this.width || drip.y < 0 || drip.y >= this.height) {
+        drip.active = false;
+        continue;
+      }
+
+      // Draw line from previous to current position (continuous drip trail)
+      ctx.beginPath();
+      ctx.moveTo(drip.prevX, drip.prevY);
+      ctx.lineTo(drip.x, drip.y);
+      ctx.strokeStyle = `rgba(${drip.color.r}, ${drip.color.g}, ${drip.color.b}, ${drip.opacity})`;
+      ctx.lineWidth = drip.width;
+      ctx.lineCap = 'round';
+      ctx.stroke();
     }
   }
 
@@ -265,9 +349,8 @@ export class VectorBrush extends BaseBrush {
    * Redraw all strokes from scratch
    */
   redraw() {
-    // Clear canvas
-    this.ctx.fillStyle = '#000';
-    this.ctx.fillRect(0, 0, this.width, this.height);
+    // Clear canvas (transparent for compositing)
+    this.ctx.clearRect(0, 0, this.width, this.height);
 
     // Redraw all strokes
     for (const stroke of this.strokes) {

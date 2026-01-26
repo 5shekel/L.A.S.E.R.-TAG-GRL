@@ -8,6 +8,7 @@ export class Camera {
     this.isReady = false;
     this.width = 640;
     this.height = 480;
+    this.mirror = false;  // Set true to flip horizontally
   }
 
   /**
@@ -99,8 +100,24 @@ export class Camera {
   getFrame(ctx) {
     if (!this.isReady) return null;
 
+    ctx.save();
+    if (this.mirror) {
+      // Flip horizontally for mirrored cameras
+      ctx.translate(this.width, 0);
+      ctx.scale(-1, 1);
+    }
     ctx.drawImage(this.video, 0, 0, this.width, this.height);
+    ctx.restore();
+
     return ctx.getImageData(0, 0, this.width, this.height);
+  }
+
+  /**
+   * Toggle mirror mode
+   * @param {boolean} enabled - Whether to mirror the camera
+   */
+  setMirror(enabled) {
+    this.mirror = enabled;
   }
 
   /**

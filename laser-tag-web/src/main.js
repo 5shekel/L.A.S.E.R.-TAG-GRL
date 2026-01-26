@@ -92,13 +92,9 @@ async function initApp() {
 }
 
 /**
- * Set up event listeners
+ * Set up event listeners (called after app init)
  */
 function setupEventListeners() {
-  // Start button
-  const startButton = document.getElementById('start-button');
-  startButton.addEventListener('click', initApp);
-
   // Window resize
   window.addEventListener('resize', () => {
     if (app) {
@@ -154,6 +150,25 @@ function setupEventListeners() {
       setTimeout(() => app.handleResize(), 100);
     }
   });
+
+  // Projector canvas mouse events for mouse input mode
+  const projectorCanvas = document.getElementById('projector-canvas');
+
+  projectorCanvas.addEventListener('mousedown', (e) => {
+    if (app) app.handleMouseDown(e);
+  });
+
+  projectorCanvas.addEventListener('mousemove', (e) => {
+    if (app) app.handleMouseMove(e);
+  });
+
+  projectorCanvas.addEventListener('mouseup', () => {
+    if (app) app.handleMouseUp();
+  });
+
+  projectorCanvas.addEventListener('mouseleave', () => {
+    if (app) app.handleMouseUp();
+  });
 }
 
 /**
@@ -203,6 +218,17 @@ function handleKeyDown(e) {
         const isVisible = debugCanvas.style.display !== 'none';
         debugCanvas.style.display = isVisible ? 'none' : 'block';
         app.settings.showDebug = !isVisible;
+      }
+      break;
+
+    case 'm':
+      // Toggle mouse input mode
+      const mouseMode = app.toggleMouseInput();
+      console.log('Mouse input mode:', mouseMode ? 'ON' : 'OFF');
+      // Sync GUI checkbox
+      if (gui && gui.state) {
+        gui.state.useMouseInput = mouseMode;
+        gui.gui.controllersRecursive().forEach(c => c.updateDisplay());
       }
       break;
 
@@ -284,3 +310,6 @@ window.laserTag = {
 console.log('L.A.S.E.R. TAG - Browser Edition');
 console.log('Press START to begin');
 console.log('Keyboard shortcuts: C=Clear, Z=Undo, Space=Calibrate, F=Fullscreen, D=Debug, 1-4=Brush');
+
+// Attach start button listener immediately on module load
+document.getElementById('start-button').addEventListener('click', initApp);

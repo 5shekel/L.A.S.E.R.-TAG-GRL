@@ -152,8 +152,8 @@ export class BaseBrush {
     this.isDrawing = false;
 
     if (this.ctx) {
-      this.ctx.fillStyle = '#000';
-      this.ctx.fillRect(0, 0, this.width, this.height);
+      // Use transparent clear so multiple brushes can composite
+      this.ctx.clearRect(0, 0, this.width, this.height);
     }
   }
 

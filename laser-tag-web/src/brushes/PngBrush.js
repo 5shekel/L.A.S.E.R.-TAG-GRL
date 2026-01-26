@@ -277,12 +277,11 @@ export class PngBrush extends BaseBrush {
 
     const ctx = this.ctx;
     const size = this.params.brushWidth;
-    const halfSize = size / 2;
 
     // Calculate scale with variation
     const scaleVar = this.params.scaleVariation;
     const scale = 1 + (Math.random() - 0.5) * scaleVar * 2;
-    const scaledSize = size * scale;
+    const scaledSize = Math.max(4, size * scale);
     const scaledHalf = scaledSize / 2;
 
     // Calculate rotation
@@ -291,34 +290,29 @@ export class PngBrush extends BaseBrush {
       rotation = Math.random() * Math.PI * 2;
     }
 
-    ctx.save();
+    // Create a temporary canvas for colorized stamp
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = Math.ceil(scaledSize);
+    tempCanvas.height = Math.ceil(scaledSize);
+    const tempCtx = tempCanvas.getContext('2d');
 
-    // Set blend mode
-    ctx.globalCompositeOperation = this.params.blendMode;
-    ctx.globalAlpha = this.params.opacity;
-
-    // Transform
-    ctx.translate(x, y);
-    ctx.rotate(rotation);
+    // Draw brush onto temp canvas
+    tempCtx.drawImage(brush.canvas, 0, 0, scaledSize, scaledSize);
 
     // Apply color tinting if enabled
     if (this.params.colorize) {
-      // Draw brush with color multiplication
-      ctx.drawImage(brush.canvas, -scaledHalf, -scaledHalf, scaledSize, scaledSize);
-
-      // Apply color tint
-      ctx.globalCompositeOperation = 'multiply';
-      ctx.fillStyle = `rgb(${this.params.color.r}, ${this.params.color.g}, ${this.params.color.b})`;
-      ctx.fillRect(-scaledHalf, -scaledHalf, scaledSize, scaledSize);
-
-      // Restore alpha from brush
-      ctx.globalCompositeOperation = 'destination-in';
-      ctx.drawImage(brush.canvas, -scaledHalf, -scaledHalf, scaledSize, scaledSize);
-    } else {
-      // Draw brush without tinting
-      ctx.drawImage(brush.canvas, -scaledHalf, -scaledHalf, scaledSize, scaledSize);
+      tempCtx.globalCompositeOperation = 'source-in';
+      tempCtx.fillStyle = `rgb(${this.params.color.r}, ${this.params.color.g}, ${this.params.color.b})`;
+      tempCtx.fillRect(0, 0, scaledSize, scaledSize);
     }
 
+    // Now draw the colorized stamp onto main canvas
+    ctx.save();
+    ctx.globalCompositeOperation = this.params.blendMode;
+    ctx.globalAlpha = this.params.opacity;
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
+    ctx.drawImage(tempCanvas, -scaledHalf, -scaledHalf);
     ctx.restore();
   }
 
@@ -326,9 +320,8 @@ export class PngBrush extends BaseBrush {
    * Redraw all strokes
    */
   redraw() {
-    // Clear canvas
-    this.ctx.fillStyle = '#000';
-    this.ctx.fillRect(0, 0, this.width, this.height);
+    // Clear canvas (transparent for compositing)
+    this.ctx.clearRect(0, 0, this.width, this.height);
 
     // Re-stamp all points in all strokes
     for (const stroke of this.strokes) {

@@ -6,39 +6,31 @@ A modern JavaScript port of the classic L.A.S.E.R. TAG interactive graffiti syst
 
 L.A.S.E.R. TAG allows you to create digital graffiti using a laser pointer tracked by a webcam. Point your laser at a surface, and the software tracks its position to create brush strokes that can be projected back onto that surface.
 
+## Live Demo
+
+**[Try it online](https://leonfedotov.github.io/L.A.S.E.R.-TAG-GRL/)** (requires camera access)
+
 ## Features
 
 - **Real-time laser tracking** using OpenCV.js (bundled locally for offline use)
-- **Multiple brush modes**:
-  - Smooth, Ribbon, Glow, Neon (standard modes)
-  - Basic, Dope, Arrow, Arrow Fat (C++ ports with customizable shadows)
-- **Drip effects** with configurable frequency, speed, direction, and width
-- **WebGL bloom/glow** post-processing effects
-- **Color palette** with 9 preset colors + custom picker
-- **Shadow color palette** for C++ brush modes (default magenta)
-- **Perspective calibration** for accurate projection mapping
-- **Floating Tweakpane UI** with collapsible panels
+- **8 brush modes** with customizable colors and shadows
+- **Drip effects** with physics-based animation
+- **WebGL bloom/glow** post-processing
+- **Dual color palettes** - 9 preset colors for brush and shadow
+- **Perspective calibration** for projection mapping
+- **Floating Tweakpane UI** - minimal, collapsible panels
 - **Projector popup window** for dual-display setups
-- **Erase zone** for clearing specific areas
+- **Stroke baking system** - completed strokes become immutable background
+- **Works offline** - all dependencies bundled locally
 
 ## Quick Start
 
 ```bash
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 
-Then open http://localhost:3000 in your browser and click START.
-
-## Requirements
-
-- Modern web browser (Chrome, Firefox, Edge, Safari)
-- Webcam
-- Laser pointer (green lasers work best)
-- Optional: Projector for full installation
+Open http://localhost:3000 and click START. Press `M` to use mouse input for testing without a laser.
 
 ## Keyboard Shortcuts
 
@@ -50,72 +42,146 @@ Then open http://localhost:3000 in your browser and click START.
 | `Ctrl+S` | Save calibration |
 | `F` | Toggle fullscreen |
 | `D` | Toggle camera view |
-| `M` | Toggle mouse input |
-| `1-4` | Switch brush |
-| `Arrow Up/Down` | Increase/decrease brush size |
-
-## GUI Panels
-
-- **Colors** - Brush color and shadow color palettes with custom pickers
-- **Styles** - Brush type, width, mode selection (8 modes), glow/shadow settings
-- **Effects** - Drips (frequency, speed, direction) and WebGL bloom
-- **Laser Detection** - Camera selection, HSV presets, manual tuning
-- **Calibration** - 4-point perspective correction
-- **Display** - Camera view toggle, background color, mirror, fullscreen
-- **Actions** - Clear canvas, undo, projector window
-- **Erase Zone** - Configurable clear area
+| `M` | Toggle mouse input (for testing) |
+| `1-4` | Switch brush type |
+| `Arrow Up/Down` | Adjust brush size |
 
 ## Brush Modes
 
 ### Standard Modes
-- **Smooth** - Variable-width strokes based on velocity
-- **Ribbon** - Simple line strokes
-- **Glow** - Multi-layer glow effect
-- **Neon** - Hard center with soft glow
+| Mode | Description |
+|------|-------------|
+| **Smooth** | Variable-width strokes - faster movement = thinner lines |
+| **Ribbon** | Consistent-width line strokes |
+| **Glow** | Multi-layer transparency for soft glow effect |
+| **Neon** | White center core with colored outer glow |
 
-### C++ Ports (with shadow)
-- **Basic** - Simple stroke with diagonal shadow
-- **Dope** - Ribbon stroke following direction with shadow
-- **Arrow** - Dope style with arrow head at end
-- **Fat** - Arrow style with customizable shadow color
+### C++ Ports (from original vectorBrush.cpp)
+| Mode | Description |
+|------|-------------|
+| **Basic** | Simple stroke with diagonal drop shadow |
+| **Dope** | Ribbon following stroke direction with perpendicular shadow |
+| **Arrow** | Dope style with triangular arrow head at stroke end |
+| **Fat** | Arrow with bold shadow (default magenta, customizable) |
+
+The C++ modes use the original perpendicular calculation pattern `(nrmY, -nrmX)` for accurate ribbon geometry that follows stroke direction.
+
+## Drip System
+
+Drips simulate paint dripping from strokes:
+
+- **Frequency** (1-120) - Higher = more drips spawn
+- **Speed** (0.1-12) - Movement velocity
+- **Direction** - South, West, North, or East
+- **Width** (1-25) - Drip line thickness
+
+Drips use physics-based animation with deceleration as they approach their target distance. Each drip is associated with its parent stroke for proper layering - newer strokes appear above older drips.
+
+## Stroke Layering System
+
+The brush uses a **baking system** for proper layer management:
+
+1. **Active stroke** - Currently being drawn, fully editable
+2. **Completed strokes** - Marked complete when you lift the input
+3. **Baked background** - When starting a new stroke, all previous content (strokes + drips) is composited into an immutable background layer
+
+This ensures:
+- Newer strokes always appear above older content
+- Drips from old strokes don't overlap new strokes
+- Memory-efficient - only active stroke needs redrawing
+
+## WebGL Post-Processing
+
+The bloom effect uses multi-pass Gaussian blur:
+
+1. **Threshold extraction** - Isolate bright pixels
+2. **Horizontal blur** - Spread horizontally
+3. **Vertical blur** - Spread vertically
+4. **Composite** - Blend with original
+
+Parameters:
+- **Bloom Intensity** (0-2) - Strength of glow
+- **Bloom Threshold** (0-1) - Brightness cutoff
+
+## Laser Detection
+
+Default HSV ranges optimized for different laser colors:
+
+| Laser | Hue | Saturation | Value |
+|-------|-----|------------|-------|
+| Green | 35-85 | 50-255 | 200-255 |
+| Red | 0-15 | 100-255 | 200-255 |
+| Blue | 100-130 | 100-255 | 200-255 |
+| White | 0-180 | 0-50 | 240-255 |
+
+The tracker uses OpenCV.js for HSV color space conversion and contour detection to find the brightest matching point.
+
+## Calibration
+
+4-point perspective correction maps camera coordinates to projector output:
+
+1. Press `Space` to enter calibration mode
+2. Drag corner handles on the camera view to match your projection surface
+3. Press `Ctrl+S` to save (persists in localStorage)
+
+The transformation uses homography matrix calculation for accurate perspective warping.
 
 ## Architecture
 
 ```
 src/
-├── main.js                 # Entry point
+├── main.js                 # Entry point, keyboard handlers
 ├── app/
-│   ├── AppController.js    # Main orchestrator
-│   └── TweakpaneGui.js     # Tweakpane UI controls
+│   ├── AppController.js    # Main orchestrator, render loop
+│   └── TweakpaneGui.js     # Floating UI with color/mode mosaics
 ├── tracking/
-│   ├── Camera.js           # WebRTC camera access
-│   ├── LaserTracker.js     # OpenCV.js tracking
-│   └── CoordWarping.js     # Perspective transform
+│   ├── Camera.js           # WebRTC camera, device selection
+│   ├── LaserTracker.js     # OpenCV.js HSV tracking
+│   └── CoordWarping.js     # Perspective transform matrix
 ├── brushes/
-│   ├── BaseBrush.js        # Abstract brush class
-│   ├── VectorBrush.js      # Line/stroke brush with C++ modes
-│   └── PngBrush.js         # Stamp brush
+│   ├── BaseBrush.js        # Abstract brush interface
+│   ├── VectorBrush.js      # Main brush: 8 modes, drips, baking
+│   └── PngBrush.js         # Stamp brush with PNG patterns
 └── effects/
-    └── PostProcessor.js    # WebGL bloom effect
+    └── PostProcessor.js    # WebGL bloom shader pipeline
+```
+
+## Building for Production
+
+```bash
+npm run build      # Output to dist/
+npm run preview    # Preview production build
+```
+
+## Deployment
+
+GitHub Pages deployment is configured via `.github/workflows/deploy.yml`. Push to `master` or `main` to auto-deploy.
+
+Manual deployment:
+```bash
+GITHUB_PAGES=true npm run build
+# Upload dist/ contents to any static host
 ```
 
 ## Technologies
 
-- **Vite** - Build tool and dev server
-- **OpenCV.js** - Computer vision (laser detection, bundled locally)
-- **Tweakpane** - Modern floating GUI controls
-- **WebGL** - Post-processing effects (bloom)
-- **gl-matrix** - Vector/matrix math
-- **WebRTC** - Camera access
+| Tech | Purpose |
+|------|---------|
+| **Vite** | Build tool, dev server, HMR |
+| **OpenCV.js** | Computer vision (HSV tracking, contours) |
+| **Tweakpane** | Floating GUI controls |
+| **WebGL** | Post-processing shaders |
+| **gl-matrix** | Matrix math for perspective |
+| **WebRTC** | Camera access |
 
 ## Credits
 
-Original L.A.S.E.R. TAG by:
-- **Graffiti Research Lab** - Concept and direction
-- **Theodore Watson** - PNG brush, vector brush
+**Original L.A.S.E.R. TAG by Graffiti Research Lab:**
+- **Evan Roth & James Powderly** - Concept and direction
+- **Theodore Watson** - PNG brush, vector brush implementation
 - **Zachary Lieberman** - Graff letter brush, gesture machine
 
-Browser port: 2024-2025
+**Browser port:** 2024-2025
 
 ## License
 
@@ -125,3 +191,4 @@ MIT License - See LICENSE file for details.
 
 - [Original L.A.S.E.R. TAG](http://graffitiresearchlab.com/blog/projects/laser-tag/)
 - [Graffiti Research Lab](http://graffitiresearchlab.com/)
+- [OpenFrameworks](https://openframeworks.cc/) (original C++ framework)

@@ -7,6 +7,7 @@ import { LaserTracker } from '../tracking/LaserTracker.js';
 import { CoordWarping } from '../tracking/CoordWarping.js';
 import { VectorBrush } from '../brushes/VectorBrush.js';
 import { PngBrush } from '../brushes/PngBrush.js';
+import { PostProcessor } from '../effects/PostProcessor.js';
 
 export class AppController {
   constructor() {
@@ -43,6 +44,9 @@ export class AppController {
 
     // Animation frame ID
     this.animationFrameId = null;
+
+    // Post-processing (WebGL bloom/glow effects)
+    this.postProcessor = null;
 
     // Settings
     this.settings = {
@@ -117,6 +121,19 @@ export class AppController {
 
     // Initialize brushes
     this.initBrushes();
+
+    // Initialize post-processor for bloom/glow effects
+    this.postProcessor = new PostProcessor();
+    const ppInitialized = this.postProcessor.init(
+      this.projectorCanvas.width,
+      this.projectorCanvas.height
+    );
+    if (ppInitialized) {
+      console.log('WebGL post-processor initialized');
+    } else {
+      console.warn('WebGL post-processor unavailable, bloom effects disabled');
+      this.postProcessor = null;
+    }
 
     console.log('AppController initialized');
     return true;
@@ -448,6 +465,17 @@ export class AppController {
       ctx.arc(transformed.x, transformed.y, 5, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
       ctx.fill();
+    }
+
+    // Apply WebGL post-processing (bloom effect)
+    if (this.postProcessor && this.postProcessor.enabled && this.postProcessor.params.bloomEnabled) {
+      const processedCanvas = this.postProcessor.process(this.projectorCanvas);
+      // Draw processed result back to the projector canvas (flip Y to correct WebGL orientation)
+      ctx.save();
+      ctx.translate(0, this.projectorCanvas.height);
+      ctx.scale(1, -1);
+      ctx.drawImage(processedCanvas, 0, 0);
+      ctx.restore();
     }
 
     // Also draw to popup projector window if open

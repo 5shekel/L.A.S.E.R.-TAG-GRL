@@ -232,8 +232,8 @@
     <div class="sidebar" id="gui-container"></div>
   </div>
 
-  <!-- OpenCV.js loaded from CDN -->
-  <script async src="https://docs.opencv.org/4.9.0/opencv.js" onload="window.cvReady = true;"></script>
+  <!-- OpenCV.js loaded locally for offline support -->
+  <script async src="/lib/opencv.js" onload="window.cvReady = true;"></script>
 
   <!-- Main application -->
   <script type="module" src="/src/main.js"></script>

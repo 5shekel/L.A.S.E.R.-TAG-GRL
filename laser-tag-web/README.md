@@ -8,14 +8,18 @@ L.A.S.E.R. TAG allows you to create digital graffiti using a laser pointer track
 
 ## Features
 
-- **Real-time laser tracking** using OpenCV.js
-- **Multiple brush types**:
-  - Vector brush with smooth, ribbon, glow, and neon modes
-  - PNG stamp brush with multiple patterns
+- **Real-time laser tracking** using OpenCV.js (bundled locally for offline use)
+- **Multiple brush modes**:
+  - Smooth, Ribbon, Glow, Neon (standard modes)
+  - Basic, Dope, Arrow, Arrow Fat (C++ ports with customizable shadows)
+- **Drip effects** with configurable frequency, speed, direction, and width
+- **WebGL bloom/glow** post-processing effects
+- **Color palette** with 9 preset colors + custom picker
+- **Shadow color palette** for C++ brush modes (default magenta)
 - **Perspective calibration** for accurate projection mapping
-- **Drip effects** for realistic graffiti aesthetics
-- **Configurable color detection** with presets for different laser colors
-- **Full-screen projection mode**
+- **Floating Tweakpane UI** with collapsible panels
+- **Projector popup window** for dual-display setups
+- **Erase zone** for clearing specific areas
 
 ## Quick Start
 
@@ -45,32 +49,35 @@ Then open http://localhost:3000 in your browser and click START.
 | `Space` | Toggle calibration mode |
 | `Ctrl+S` | Save calibration |
 | `F` | Toggle fullscreen |
-| `D` | Toggle debug view |
+| `D` | Toggle camera view |
+| `M` | Toggle mouse input |
 | `1-4` | Switch brush |
-| `↑/↓` | Increase/decrease brush size |
+| `Arrow Up/Down` | Increase/decrease brush size |
 
-## Calibration
+## GUI Panels
 
-1. Press `Space` to enter calibration mode
-2. Drag the four corner points on the debug view to match your projection area
-3. Press `Ctrl+S` to save (persists to localStorage)
+- **Colors** - Brush color and shadow color palettes with custom pickers
+- **Styles** - Brush type, width, mode selection (8 modes), glow/shadow settings
+- **Effects** - Drips (frequency, speed, direction) and WebGL bloom
+- **Laser Detection** - Camera selection, HSV presets, manual tuning
+- **Calibration** - 4-point perspective correction
+- **Display** - Camera view toggle, background color, mirror, fullscreen
+- **Actions** - Clear canvas, undo, projector window
+- **Erase Zone** - Configurable clear area
 
-## Laser Detection
+## Brush Modes
 
-The default settings work well for green laser pointers. For other colors:
+### Standard Modes
+- **Smooth** - Variable-width strokes based on velocity
+- **Ribbon** - Simple line strokes
+- **Glow** - Multi-layer glow effect
+- **Neon** - Hard center with soft glow
 
-1. Open the "Laser Detection" panel in the GUI
-2. Select a preset (Green, Red, Blue, or White)
-3. Or manually adjust the HSV ranges
-
-### HSV Ranges for Common Lasers
-
-| Laser | Hue | Saturation | Value |
-|-------|-----|------------|-------|
-| Green | 35-85 | 50-255 | 200-255 |
-| Red | 0-15 | 100-255 | 200-255 |
-| Blue | 100-130 | 100-255 | 200-255 |
-| White | 0-180 | 0-50 | 240-255 |
+### C++ Ports (with shadow)
+- **Basic** - Simple stroke with diagonal shadow
+- **Dope** - Ribbon stroke following direction with shadow
+- **Arrow** - Dope style with arrow head at end
+- **Fat** - Arrow style with customizable shadow color
 
 ## Architecture
 
@@ -79,22 +86,25 @@ src/
 ├── main.js                 # Entry point
 ├── app/
 │   ├── AppController.js    # Main orchestrator
-│   └── GuiManager.js       # lil-gui controls
+│   └── TweakpaneGui.js     # Tweakpane UI controls
 ├── tracking/
 │   ├── Camera.js           # WebRTC camera access
 │   ├── LaserTracker.js     # OpenCV.js tracking
 │   └── CoordWarping.js     # Perspective transform
-└── brushes/
-    ├── BaseBrush.js        # Abstract brush class
-    ├── VectorBrush.js      # Line/stroke brush
-    └── PngBrush.js         # Stamp brush
+├── brushes/
+│   ├── BaseBrush.js        # Abstract brush class
+│   ├── VectorBrush.js      # Line/stroke brush with C++ modes
+│   └── PngBrush.js         # Stamp brush
+└── effects/
+    └── PostProcessor.js    # WebGL bloom effect
 ```
 
 ## Technologies
 
 - **Vite** - Build tool and dev server
-- **OpenCV.js** - Computer vision (laser detection)
-- **lil-gui** - GUI controls
+- **OpenCV.js** - Computer vision (laser detection, bundled locally)
+- **Tweakpane** - Modern floating GUI controls
+- **WebGL** - Post-processing effects (bloom)
 - **gl-matrix** - Vector/matrix math
 - **WebRTC** - Camera access
 
@@ -105,7 +115,7 @@ Original L.A.S.E.R. TAG by:
 - **Theodore Watson** - PNG brush, vector brush
 - **Zachary Lieberman** - Graff letter brush, gesture machine
 
-Browser port modernization: 2024
+Browser port: 2024-2025
 
 ## License
 
@@ -115,4 +125,3 @@ MIT License - See LICENSE file for details.
 
 - [Original L.A.S.E.R. TAG](http://graffitiresearchlab.com/blog/projects/laser-tag/)
 - [Graffiti Research Lab](http://graffitiresearchlab.com/)
-- [OpenCV.js Documentation](https://docs.opencv.org/4.x/d5/d10/tutorial_js_root.html)

@@ -9,8 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tweakpane/plugin-essentials": "^0.2.1",
+    "gl-matrix": "^3.4.3",
     "lil-gui": "^0.19.2",
-    "gl-matrix": "^3.4.3"
+    "opencv.js": "^1.2.1",
+    "tweakpane": "^4.0.5"
   },
   "devDependencies": {
     "vite": "^5.0.0"

@@ -23,3 +23,10 @@ npm-debug.log*
 .env
 .env.local
 .env.*.local
+
+# Claude/AI tooling
+.claude/
+.tldr/
+.tldrignore
+.mcp.json
+thoughts/

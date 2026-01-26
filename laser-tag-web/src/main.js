@@ -7,7 +7,8 @@
  */
 
 import { AppController } from './app/AppController.js';
-import { GuiManager } from './app/GuiManager.js';
+import { TweakpaneGui } from './app/TweakpaneGui.js';
+// import { GuiManager } from './app/GuiManager.js';  // Legacy lil-gui
 
 // Global application state
 let app = null;
@@ -66,8 +67,8 @@ async function initApp() {
 
     loadingStatus.textContent = 'Setting up controls...';
 
-    // Create GUI
-    gui = new GuiManager(app);
+    // Create GUI (Tweakpane)
+    gui = new TweakpaneGui(app);
     gui.init(document.getElementById('gui-container'));
 
     // Set up event listeners
@@ -225,10 +226,13 @@ function handleKeyDown(e) {
       // Toggle mouse input mode
       const mouseMode = app.toggleMouseInput();
       console.log('Mouse input mode:', mouseMode ? 'ON' : 'OFF');
-      // Sync GUI checkbox
-      if (gui && gui.state) {
+      // Sync GUI checkbox (works with both TweakpaneGui and GuiManager)
+      if (gui && gui.setMouseInputState) {
+        gui.setMouseInputState(mouseMode);
+      } else if (gui && gui.state) {
         gui.state.useMouseInput = mouseMode;
-        gui.gui.controllersRecursive().forEach(c => c.updateDisplay());
+        if (gui.pane) gui.pane.refresh();  // Tweakpane
+        else if (gui.gui) gui.gui.controllersRecursive().forEach(c => c.updateDisplay());  // lil-gui
       }
       break;
 

@@ -142,7 +142,8 @@ export class GuiManager {
       .onChange(v => this.app.setBrushWidth(v));
 
     // Mode (for vector brush)
-    folder.add(this.state, 'brushMode', ['smooth', 'ribbon', 'glow', 'neon'])
+    // Includes both JS modes and C++ ports (arrow, basic, dope, arrowFat)
+    folder.add(this.state, 'brushMode', ['smooth', 'ribbon', 'glow', 'neon', 'basic', 'dope', 'arrow', 'arrowFat'])
       .name('Mode')
       .onChange(v => {
         const brush = this.app.getActiveBrush();

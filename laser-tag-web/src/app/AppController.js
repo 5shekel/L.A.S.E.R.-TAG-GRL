@@ -235,6 +235,11 @@ export class AppController {
 
     // Update warping destination
     this.warping.setDestinationDimensions(rect.width, rect.height);
+
+    // Update post-processor dimensions
+    if (this.postProcessor && this.postProcessor.enabled) {
+      this.postProcessor.resize(rect.width, rect.height);
+    }
   }
 
   /**
@@ -479,7 +484,9 @@ export class AppController {
     // Apply WebGL post-processing (bloom effect)
     if (this.postProcessor && this.postProcessor.enabled && this.postProcessor.params.bloomEnabled) {
       const processedCanvas = this.postProcessor.process(this.projectorCanvas);
-      // Draw processed result back to the projector canvas (flip Y to correct WebGL orientation)
+      // Clear and draw processed result (flip Y to correct WebGL orientation)
+      ctx.fillStyle = this.settings.backgroundColor;
+      ctx.fillRect(0, 0, this.projectorCanvas.width, this.projectorCanvas.height);
       ctx.save();
       ctx.translate(0, this.projectorCanvas.height);
       ctx.scale(1, -1);

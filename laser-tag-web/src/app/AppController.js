@@ -8,6 +8,7 @@ import { CoordWarping } from '../tracking/CoordWarping.js';
 import { VectorBrush } from '../brushes/VectorBrush.js';
 import { PngBrush } from '../brushes/PngBrush.js';
 import { PostProcessor } from '../effects/PostProcessor.js';
+import { Homography } from '../utils/Homography.js';
 
 export class AppController {
   constructor() {
@@ -60,6 +61,8 @@ export class AppController {
       eraseZoneEnabled: false,
       eraseZoneX: 0.0,       // Left edge (0-1)
       eraseZoneY: 0.0,       // Top edge (0-1)
+      eraseZoneWidth: 0.15,  // Width (0-1)
+      eraseZoneHeight: 0.15, // Height (0-1)
       // Projector output quad (normalized 0-1 coordinates)
       // Default is full canvas, can be adjusted to limit projection area
       projectorQuad: [
@@ -68,8 +71,6 @@ export class AppController {
         { x: 1, y: 1 },      // Bottom-right
         { x: 0, y: 1 }       // Bottom-left
       ]
-      eraseZoneWidth: 0.15,  // Width (0-1)
-      eraseZoneHeight: 0.15  // Height (0-1)
     };
 
     // Callbacks for UI updates
@@ -501,34 +502,69 @@ export class AppController {
       // Use main projector canvas as source (already composited all brushes)
       const srcCanvas = this.projectorCanvas;
 
-      // Calculate aspect-ratio-preserving scale (letterbox/pillarbox)
-      const srcAspect = srcCanvas.width / srcCanvas.height;
-      const dstAspect = popupCanvas.width / popupCanvas.height;
+      const w = popupCanvas.width;
+      const h = popupCanvas.height;
 
-      let drawWidth, drawHeight, offsetX, offsetY;
-
-      if (srcAspect > dstAspect) {
-        // Source is wider - fit to width, letterbox top/bottom
-        drawWidth = popupCanvas.width;
-        drawHeight = popupCanvas.width / srcAspect;
-        offsetX = 0;
-        offsetY = (popupCanvas.height - drawHeight) / 2;
-      } else {
-        // Source is taller - fit to height, pillarbox left/right
-        drawHeight = popupCanvas.height;
-        drawWidth = popupCanvas.height * srcAspect;
-        offsetX = (popupCanvas.width - drawWidth) / 2;
-        offsetY = 0;
-      }
-
-      // Clear and draw with preserved aspect ratio
+      // Clear the popup canvas
       popupCtx.fillStyle = this.settings.backgroundColor;
-      popupCtx.fillRect(0, 0, popupCanvas.width, popupCanvas.height);
-      popupCtx.drawImage(
-        srcCanvas,
-        offsetX, offsetY,
-        drawWidth, drawHeight
-      );
+      popupCtx.fillRect(0, 0, w, h);
+
+      // Check if projector quad differs from default (full canvas)
+      const quad = this.settings.projectorQuad;
+      const isWarped = quad.some((p, i) => {
+        const defaultX = (i === 0 || i === 3) ? 0 : 1;
+        const defaultY = (i === 0 || i === 1) ? 0 : 1;
+        return Math.abs(p.x - defaultX) > 0.001 || Math.abs(p.y - defaultY) > 0.001;
+      });
+
+      if (isWarped) {
+        // Apply perspective warp using CSS matrix3d on the canvas element
+        // Compute homography from unit rect to the quad
+        const H = Homography.createProjectionMapping(w, h, quad, w, h);
+        const cssMatrix = Homography.toMatrix3d(H, w, h);
+
+        // Apply CSS transform to the canvas element
+        popupCanvas.style.transformOrigin = '0 0';
+        popupCanvas.style.transform = cssMatrix;
+
+        // Draw content at full size (CSS will warp it)
+        popupCtx.drawImage(srcCanvas, 0, 0, w, h);
+
+        // Draw calibration overlay on popup if active
+        if (this.isProjectorCalibrating) {
+          this.drawProjectorCalibrationOverlay(popupCtx, w, h);
+        }
+      } else {
+        // No warping needed - reset any transform and draw normally
+        popupCanvas.style.transform = 'none';
+
+        // Calculate aspect-ratio-preserving scale (letterbox/pillarbox)
+        const srcAspect = srcCanvas.width / srcCanvas.height;
+        const dstAspect = w / h;
+
+        let drawWidth, drawHeight, offsetX, offsetY;
+
+        if (srcAspect > dstAspect) {
+          // Source is wider - fit to width, letterbox top/bottom
+          drawWidth = w;
+          drawHeight = w / srcAspect;
+          offsetX = 0;
+          offsetY = (h - drawHeight) / 2;
+        } else {
+          // Source is taller - fit to height, pillarbox left/right
+          drawHeight = h;
+          drawWidth = h * srcAspect;
+          offsetX = (w - drawWidth) / 2;
+          offsetY = 0;
+        }
+
+        popupCtx.drawImage(srcCanvas, offsetX, offsetY, drawWidth, drawHeight);
+
+        // Draw calibration overlay on popup if active
+        if (this.isProjectorCalibrating) {
+          this.drawProjectorCalibrationOverlay(popupCtx, w, h);
+        }
+      }
     }
   }
 
@@ -628,10 +664,13 @@ export class AppController {
 
   /**
    * Draw projector calibration overlay with draggable corners
+   * @param {CanvasRenderingContext2D} ctx - Canvas context to draw on
+   * @param {number} [width] - Canvas width (defaults to projectorCanvas)
+   * @param {number} [height] - Canvas height (defaults to projectorCanvas)
    */
-  drawProjectorCalibrationOverlay(ctx) {
-    const w = this.projectorCanvas.width;
-    const h = this.projectorCanvas.height;
+  drawProjectorCalibrationOverlay(ctx, width, height) {
+    const w = width || this.projectorCanvas.width;
+    const h = height || this.projectorCanvas.height;
     const quad = this.settings.projectorQuad;
 
     // Convert normalized coords to pixels
@@ -698,21 +737,26 @@ export class AppController {
 
   /**
    * Select projector calibration point at given coordinates
+   * @param {number} clientX - Client X coordinate
+   * @param {number} clientY - Client Y coordinate
+   * @param {HTMLCanvasElement} [canvas] - Optional canvas (defaults to projectorCanvas, use popup canvas when called from popup)
    */
-  selectProjectorPoint(clientX, clientY) {
+  selectProjectorPoint(clientX, clientY, canvas) {
     if (!this.isProjectorCalibrating) return -1;
 
-    const rect = this.projectorCanvas.getBoundingClientRect();
+    // Use provided canvas or default to main projector canvas
+    const targetCanvas = canvas || this.projectorCanvas;
+    const rect = targetCanvas.getBoundingClientRect();
     const x = clientX - rect.left;
     const y = clientY - rect.top;
-    const scaleX = this.projectorCanvas.width / rect.width;
-    const scaleY = this.projectorCanvas.height / rect.height;
+    const scaleX = targetCanvas.width / rect.width;
+    const scaleY = targetCanvas.height / rect.height;
     const canvasX = x * scaleX;
     const canvasY = y * scaleY;
 
-    const w = this.projectorCanvas.width;
-    const h = this.projectorCanvas.height;
-    const handleRadius = 20;
+    const w = targetCanvas.width;
+    const h = targetCanvas.height;
+    const handleRadius = 30; // Larger for easier grabbing
 
     // Find closest point within radius
     let closestDist = handleRadius;
@@ -734,22 +778,28 @@ export class AppController {
 
   /**
    * Move selected projector calibration point
+   * @param {number} pointIndex - Point index (0-3)
+   * @param {number} clientX - Client X coordinate
+   * @param {number} clientY - Client Y coordinate
+   * @param {HTMLCanvasElement} [canvas] - Optional canvas (defaults to projectorCanvas)
    */
-  moveProjectorPoint(pointIndex, clientX, clientY) {
+  moveProjectorPoint(pointIndex, clientX, clientY, canvas) {
     if (pointIndex < 0 || pointIndex >= 4) return;
 
-    const rect = this.projectorCanvas.getBoundingClientRect();
+    // Use provided canvas or default to main projector canvas
+    const targetCanvas = canvas || this.projectorCanvas;
+    const rect = targetCanvas.getBoundingClientRect();
     const x = clientX - rect.left;
     const y = clientY - rect.top;
-    const scaleX = this.projectorCanvas.width / rect.width;
-    const scaleY = this.projectorCanvas.height / rect.height;
+    const scaleX = targetCanvas.width / rect.width;
+    const scaleY = targetCanvas.height / rect.height;
     const canvasX = x * scaleX;
     const canvasY = y * scaleY;
 
     // Store as normalized coordinates (0-1)
     this.settings.projectorQuad[pointIndex] = {
-      x: Math.max(0, Math.min(1, canvasX / this.projectorCanvas.width)),
-      y: Math.max(0, Math.min(1, canvasY / this.projectorCanvas.height))
+      x: Math.max(0, Math.min(1, canvasX / targetCanvas.width)),
+      y: Math.max(0, Math.min(1, canvasY / targetCanvas.height))
     };
   }
 

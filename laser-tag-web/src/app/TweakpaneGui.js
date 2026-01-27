@@ -848,16 +848,31 @@ export class TweakpaneGui {
       <head>
         <title>L.A.S.E.R. TAG - Projector</title>
         <style>
-          * { margin: 0; padding: 0; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
           body {
             background: #000;
             overflow: hidden;
             cursor: none;
-          }
-          canvas {
             width: 100vw;
             height: 100vh;
+            position: relative;
+          }
+          #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+          }
+          canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             display: block;
+            transform-origin: 0 0;
           }
           .instructions {
             position: fixed;
@@ -866,12 +881,16 @@ export class TweakpaneGui {
             color: #333;
             font-family: monospace;
             font-size: 12px;
+            z-index: 100;
+            pointer-events: none;
           }
         </style>
       </head>
       <body>
-        <canvas id="projector-canvas"></canvas>
-        <div class="instructions">Press F for fullscreen, ESC to exit</div>
+        <div id="canvas-container">
+          <canvas id="projector-canvas"></canvas>
+        </div>
+        <div class="instructions">Press F for fullscreen, P for calibration, ESC to exit</div>
       </body>
       </html>
     `);
@@ -890,6 +909,40 @@ export class TweakpaneGui {
       if (e.key === 'f' || e.key === 'F') {
         canvas.requestFullscreen().catch(() => {});
       }
+      if (e.key === 'p' || e.key === 'P') {
+        this.app.toggleProjectorCalibration();
+      }
+      if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+        this.app.saveProjectorCalibration();
+        e.preventDefault();
+      }
+    });
+
+    // Mouse handlers for projector calibration on popup window
+    let popupDragging = false;
+
+    canvas.addEventListener('mousedown', (e) => {
+      if (!this.app.isProjectorCalibrating) return;
+      const idx = this.app.selectProjectorPoint(e.clientX, e.clientY, canvas);
+      if (idx >= 0) {
+        popupDragging = true;
+      }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (!this.app.isProjectorCalibrating || !popupDragging) return;
+      if (this.app.projectorSelectedPoint >= 0) {
+        this.app.moveProjectorPoint(this.app.projectorSelectedPoint, e.clientX, e.clientY, canvas);
+      }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      popupDragging = false;
+      this.app.projectorSelectedPoint = -1;
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      popupDragging = false;
     });
 
     this.app.projectorPopup = {
@@ -898,7 +951,7 @@ export class TweakpaneGui {
       ctx: ctx
     };
 
-    console.log('Projector window opened. Press F for fullscreen.');
+    console.log('Projector window opened. Press F for fullscreen, P for calibration.');
   }
 
   /**

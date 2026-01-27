@@ -32,13 +32,14 @@ export class BaseBrush {
    * @param {number} height - Canvas height
    */
   init(width, height) {
-    this.width = width;
-    this.height = height;
+    // Ensure valid dimensions (minimum 1x1)
+    this.width = Math.max(1, width || 1);
+    this.height = Math.max(1, height || 1);
 
     // Create offscreen canvas for this brush
     this.canvas = document.createElement('canvas');
-    this.canvas.width = width;
-    this.canvas.height = height;
+    this.canvas.width = this.width;
+    this.canvas.height = this.height;
     this.ctx = this.canvas.getContext('2d');
 
     // Initialize to black/transparent
@@ -138,7 +139,7 @@ export class BaseBrush {
    * @param {CanvasRenderingContext2D} destCtx - Destination context
    */
   draw(destCtx) {
-    if (this.canvas) {
+    if (this.canvas && this.canvas.width > 0 && this.canvas.height > 0) {
       destCtx.drawImage(this.canvas, 0, 0);
     }
   }

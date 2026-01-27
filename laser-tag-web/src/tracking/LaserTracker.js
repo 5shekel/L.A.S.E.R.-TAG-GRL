@@ -435,37 +435,48 @@ export class LaserTracker {
 
       // Apply Kalman filter for smooth tracking
       if (this.params.useKalman) {
-        if (this.isNewStroke || !this.kalmanState) {
-          // Initialize Kalman state with first observation
-          this.kalmanState = this.kalmanFilter.correct({
-            predicted: this.kalmanFilter.predict({
-              previousCorrected: {
-                mean: [detectedPosition.x, 0, detectedPosition.y, 0],
-                covariance: [[100, 0, 0, 0], [0, 100, 0, 0], [0, 0, 100, 0], [0, 0, 0, 100]]
-              }
-            }),
-            observation: [detectedPosition.x, detectedPosition.y]
-          });
-        } else {
-          // Predict and correct
-          const predicted = this.kalmanFilter.predict({ previousCorrected: this.kalmanState });
-          this.kalmanState = this.kalmanFilter.correct({
-            predicted,
-            observation: [detectedPosition.x, detectedPosition.y]
-          });
+        try {
+          if (this.isNewStroke || !this.kalmanState) {
+            // Initialize Kalman state with first observation
+            // First predict with null state, then correct
+            const predicted = this.kalmanFilter.predict({ previousCorrected: null });
+            this.kalmanState = this.kalmanFilter.correct({
+              predicted,
+              observation: [detectedPosition.x, detectedPosition.y]
+            });
+          } else {
+            // Predict and correct
+            const predicted = this.kalmanFilter.predict({ previousCorrected: this.kalmanState });
+            this.kalmanState = this.kalmanFilter.correct({
+              predicted,
+              observation: [detectedPosition.x, detectedPosition.y]
+            });
+          }
+
+          // Use Kalman-filtered position
+          this.currentPosition = {
+            x: this.kalmanState.mean[0],
+            y: this.kalmanState.mean[2]
+          };
+
+          // Store velocity from Kalman state
+          this.velocity = {
+            x: this.kalmanState.mean[1],
+            y: this.kalmanState.mean[3]
+          };
+        } catch (e) {
+          console.warn('Kalman filter error, falling back to simple smoothing:', e);
+          // Fallback to simple smoothing on error
+          if (this.currentPosition && !this.isNewStroke) {
+            const s = this.params.smoothing;
+            this.currentPosition = {
+              x: this.currentPosition.x * s + detectedPosition.x * (1 - s),
+              y: this.currentPosition.y * s + detectedPosition.y * (1 - s)
+            };
+          } else {
+            this.currentPosition = { ...detectedPosition };
+          }
         }
-
-        // Use Kalman-filtered position
-        this.currentPosition = {
-          x: this.kalmanState.mean[0],
-          y: this.kalmanState.mean[2]
-        };
-
-        // Store velocity from Kalman state
-        this.velocity = {
-          x: this.kalmanState.mean[1],
-          y: this.kalmanState.mean[3]
-        };
       } else {
         // Fallback to simple smoothing
         if (this.currentPosition && !this.isNewStroke) {
@@ -490,19 +501,23 @@ export class LaserTracker {
       // Use Kalman prediction to maintain tracking briefly
       if (this.params.useKalman && this.kalmanState &&
           this.framesSinceLastDetection <= this.params.newStrokeThreshold) {
-        const predicted = this.kalmanFilter.predict({ previousCorrected: this.kalmanState });
-        this.kalmanState = predicted;
-
-        this.currentPosition = {
-          x: predicted.mean[0],
-          y: predicted.mean[2]
-        };
-        this.predictedPosition = { ...this.currentPosition };
+        try {
+          const predicted = this.kalmanFilter.predict({ previousCorrected: this.kalmanState });
+          // Don't update kalmanState without a correction - just use prediction for display
+          this.predictedPosition = {
+            x: predicted.mean[0],
+            y: predicted.mean[2]
+          };
+          this.currentPosition = { ...this.predictedPosition };
+        } catch (e) {
+          // Prediction failed, ignore
+        }
       }
 
       if (this.framesSinceLastDetection > this.params.newStrokeThreshold) {
         this.isTracking = false;
         this.camshiftEnabled = false;
+        this.kalmanState = null;  // Reset Kalman state for new stroke
       }
     }
   }

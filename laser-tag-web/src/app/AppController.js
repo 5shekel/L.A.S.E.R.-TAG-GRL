@@ -209,6 +209,9 @@ export class AppController {
     // Get container dimensions
     const rect = container.getBoundingClientRect();
 
+    // Skip if container has no dimensions yet
+    if (rect.width === 0 || rect.height === 0) return;
+
     // Set projector canvas to fill container
     this.projectorCanvas.width = rect.width;
     this.projectorCanvas.height = rect.height;

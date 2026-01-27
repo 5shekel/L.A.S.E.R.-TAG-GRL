@@ -360,24 +360,18 @@ export class AppController {
   updatePainting() {
     const brush = this.getActiveBrush();
 
-    // Mouse input mode
-    if (this.useMouseInput) {
-      if (!this.mouseIsDown || !this.mousePosition) {
-        if (brush.isDrawing) {
-          brush.endStroke();
-        }
-        return;
-      }
-
+    // Mouse input mode (when mouse is down)
+    if (this.useMouseInput && this.mouseIsDown && this.mousePosition) {
       // Use mouse position directly (already normalized 0-1)
       brush.addPoint(this.mousePosition.x, this.mousePosition.y, this._mouseIsNewStroke);
       this._mouseIsNewStroke = false;
-      return;
+      return;  // Mouse takes priority when actively drawing
     }
 
-    // Laser tracking mode
+    // Laser tracking mode (works alongside mouse when mouse is not pressed)
     if (!this.tracker.isTracking) {
-      if (brush.isDrawing) {
+      // Only end stroke if we're not waiting for mouse input
+      if (brush.isDrawing && !(this.useMouseInput && !this.mouseIsDown)) {
         brush.endStroke();
       }
       return;

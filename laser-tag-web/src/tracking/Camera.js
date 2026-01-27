@@ -135,6 +135,7 @@ export class Camera {
 
     this.width = this.video.videoWidth;
     this.height = this.video.videoHeight;
+    this.isReady = true;
     console.log(`Resolution changed to: ${this.width}x${this.height}`);
   }
 

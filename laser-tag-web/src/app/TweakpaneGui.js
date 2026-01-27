@@ -108,8 +108,26 @@ export class TweakpaneGui {
     // Sync initial state from app
     this.syncFromApp();
 
+    // Apply the default preset explicitly to ensure tracker params are set
+    const defaultPresets = {
+      'Green Laser': [35, 85, 50, 255, 200, 255],
+      'Red Laser': [0, 15, 100, 255, 200, 255],
+      'Blue Laser': [100, 130, 100, 255, 200, 255],
+      'White/Bright': [0, 180, 0, 50, 240, 255],
+      'Red Object': [0, 10, 120, 255, 80, 255],
+      'Green Object': [35, 85, 50, 255, 80, 255],
+      'Blue Object': [100, 130, 80, 255, 80, 255]
+    };
+    const initialPreset = defaultPresets[this.state.trackerPreset];
+    if (initialPreset) {
+      this.applyTrackerPreset(...initialPreset);
+    }
+
     // Push settings to tracker to ensure it starts with correct values
     this.updateTrackerParams();
+
+    // Update HSV color previews
+    this.updateHsvPreviews();
 
     // Apply initial drip settings
     this.updateDripParams();
@@ -644,7 +662,7 @@ export class TweakpaneGui {
   /**
    * Create tracking settings folder
    */
-  async createTrackingFolder() {
+  createTrackingFolder() {
     const folder = this.pane.addFolder({ title: 'Laser Detection', expanded: false });
     this.folders.tracking = folder;
 
@@ -655,14 +673,22 @@ export class TweakpaneGui {
         'Green Laser': 'Green Laser',
         'Red Laser': 'Red Laser',
         'Blue Laser': 'Blue Laser',
-        'White/Bright': 'White/Bright'
+        'White/Bright': 'White/Bright',
+        'Red Object': 'Red Object',
+        'Green Object': 'Green Object',
+        'Blue Object': 'Blue Object'
       }
     }).on('change', (ev) => {
+      // Laser presets: high brightness (Val Min 200+) for laser pointers
+      // Object presets: lower brightness (Val Min 80+) for colored objects
       const presets = {
         'Green Laser': [35, 85, 50, 255, 200, 255],
         'Red Laser': [0, 15, 100, 255, 200, 255],
         'Blue Laser': [100, 130, 100, 255, 200, 255],
-        'White/Bright': [0, 180, 0, 50, 240, 255]
+        'White/Bright': [0, 180, 0, 50, 240, 255],
+        'Red Object': [0, 10, 120, 255, 80, 255],
+        'Green Object': [35, 85, 50, 255, 80, 255],
+        'Blue Object': [100, 130, 80, 255, 80, 255]
       };
       const p = presets[ev.value];
       if (p) {
@@ -1083,6 +1109,7 @@ export class TweakpaneGui {
     this.state.valMax = valMax;
 
     this.updateTrackerParams();
+    this.updateHsvPreviews();
     this.pane.refresh();
   }
 

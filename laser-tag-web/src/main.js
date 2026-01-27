@@ -320,6 +320,14 @@ function handleStateChange(key, value) {
         brushEl.textContent = value;
       }
       break;
+
+    case 'mouseInput':
+      const mouseEl = document.querySelector('#status-mouse span');
+      if (mouseEl) {
+        mouseEl.textContent = value ? 'ON' : 'OFF';
+        mouseEl.className = value ? 'active' : '';
+      }
+      break;
   }
 }
 

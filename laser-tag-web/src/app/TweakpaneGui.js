@@ -784,16 +784,6 @@ export class TweakpaneGui {
     const folder = this.pane.addFolder({ title: 'Display', expanded: false });
     this.folders.display = folder;
 
-    folder.addBinding(this.state, 'showDebug', {
-      label: 'Camera View'
-    }).on('change', (ev) => {
-      this.app.settings.showDebug = ev.value;
-      const debugCanvas = document.getElementById('debug-canvas');
-      if (debugCanvas) {
-        debugCanvas.style.display = ev.value ? 'block' : 'none';
-      }
-    });
-
     folder.addBinding(this.state, 'backgroundColor', {
       label: 'Background'
     }).on('change', (ev) => {

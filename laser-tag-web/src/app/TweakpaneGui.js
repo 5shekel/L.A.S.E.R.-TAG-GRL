@@ -1027,9 +1027,7 @@ export class TweakpaneGui {
       if (e.key === 'f' || e.key === 'F') {
         canvas.requestFullscreen().catch(() => {});
       }
-      if (e.key === 'p' || e.key === 'P') {
-        this.app.toggleProjectorCalibration();
-      }
+      // P key removed - calibration only from main window
       if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
         this.app.saveProjectorCalibration();
         e.preventDefault();

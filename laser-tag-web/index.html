@@ -156,7 +156,7 @@
       border-radius: 8px;
       padding: 12px;
       flex: 1;
-      overflow-y: auto;
+      overflow-y: scroll;
       min-height: 0;
     }
 
@@ -625,9 +625,13 @@
       let offset = { x: 0, y: 0 };
       const speed = 0.3;
 
+      // Direction: randomly switch between 4 diagonal directions
+      let direction = { x: 1, y: 1 }; // Start top-left
+      let directionTimer = 0;
+      const directionChangeInterval = 300 + Math.random() * 400; // 5-12 seconds at 60fps
+
       // Isometric cube dimensions
       const size = 40;
-      const h = size * Math.sqrt(3) / 2;
 
       function resize() {
         canvas.width = window.innerWidth;
@@ -676,6 +680,18 @@
         ctx.stroke();
       }
 
+      function drawNoise() {
+        // Add random yellow pixel noise
+        const noiseCount = Math.floor(canvas.width * canvas.height / 8000);
+        for (let i = 0; i < noiseCount; i++) {
+          const x = Math.random() * canvas.width;
+          const y = Math.random() * canvas.height;
+          const alpha = 0.1 + Math.random() * 0.3;
+          ctx.fillStyle = `rgba(255, 220, 50, ${alpha})`;
+          ctx.fillRect(x, y, 1 + Math.random() * 2, 1 + Math.random() * 2);
+        }
+      }
+
       function draw() {
         ctx.fillStyle = '#0a0a0a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -697,9 +713,26 @@
           }
         }
 
-        // Update offset for floating effect (toward top-left)
-        offset.x += speed;
-        offset.y += speed;
+        // Draw yellow pixel noise
+        drawNoise();
+
+        // Update offset for floating effect
+        offset.x += speed * direction.x;
+        offset.y += speed * direction.y;
+
+        // Randomly change direction
+        directionTimer++;
+        if (directionTimer > directionChangeInterval) {
+          directionTimer = 0;
+          // Pick a new random diagonal direction
+          const directions = [
+            { x: 1, y: 1 },   // top-left
+            { x: -1, y: 1 },  // top-right
+            { x: 1, y: -1 },  // bottom-left
+            { x: -1, y: -1 }  // bottom-right
+          ];
+          direction = directions[Math.floor(Math.random() * directions.length)];
+        }
 
         requestAnimationFrame(draw);
       }

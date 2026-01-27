@@ -240,7 +240,7 @@ export class CoordWarping {
    * @param {number} threshold - Distance threshold
    * @returns {number} - Index of nearest point, or -1 if none within threshold
    */
-  findNearestPoint(x, y, threshold = 20) {
+  findNearestPoint(x, y, threshold = 35) {
     let minDist = threshold;
     let nearest = -1;
 
@@ -317,17 +317,19 @@ export class CoordWarping {
       const y = this.srcQuad[i].y * scaleY;
 
       ctx.beginPath();
-      ctx.arc(x, y, 8, 0, Math.PI * 2);
+      ctx.arc(x, y, 16, 0, Math.PI * 2);
       ctx.fillStyle = this.selectedPoint === i ? '#ff0' : '#0ff';
       ctx.fill();
       ctx.strokeStyle = '#000';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 2;
       ctx.stroke();
 
       // Label
-      ctx.fillStyle = '#fff';
-      ctx.font = '10px monospace';
-      ctx.fillText(labels[i], x + 12, y + 4);
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 12px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(labels[i], x, y);
     }
 
     ctx.restore();

@@ -20,6 +20,16 @@ export class Camera {
   async init(videoElement, options = {}) {
     this.video = videoElement;
 
+    // Check for secure context (HTTPS required for camera access)
+    if (!window.isSecureContext) {
+      throw new Error('Camera access requires HTTPS. Please use https:// or localhost');
+    }
+
+    // Check for mediaDevices API
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('Camera API not available. Please use a modern browser with HTTPS');
+    }
+
     const constraints = {
       video: {
         width: { ideal: options.width || 640 },

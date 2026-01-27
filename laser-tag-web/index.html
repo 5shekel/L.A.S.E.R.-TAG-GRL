@@ -161,35 +161,35 @@
     }
 
     .instructions-panel h3 {
-      font-size: 12px;
-      margin-bottom: 8px;
+      font-size: 10px;
+      margin-bottom: 6px;
       color: #888;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
     .instructions-panel h4 {
-      font-size: 11px;
-      margin: 12px 0 6px 0;
+      font-size: 9px;
+      margin: 10px 0 4px 0;
       color: #666;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       border-top: 1px solid #333;
-      padding-top: 10px;
+      padding-top: 8px;
     }
 
     .instructions-panel p {
-      font-size: 11px;
+      font-size: 9px;
       color: #888;
-      line-height: 1.5;
-      margin-bottom: 8px;
+      line-height: 1.4;
+      margin-bottom: 6px;
     }
 
     .shortcut-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 4px;
-      font-size: 11px;
+      gap: 3px;
+      font-size: 9px;
     }
 
     .shortcut {
@@ -202,10 +202,10 @@
       background: #222;
       border: 1px solid #444;
       border-radius: 3px;
-      padding: 1px 4px;
+      padding: 1px 3px;
       font-family: monospace;
-      font-size: 10px;
-      min-width: 20px;
+      font-size: 8px;
+      min-width: 18px;
       text-align: center;
       color: #ccc;
     }
@@ -442,6 +442,18 @@
 
             <h4>Detection Tips</h4>
             <p>Use laser presets for bright laser pointers (Val Min 200+). Use object presets for colored objects like balls or markers (Val Min 80). Adjust HSV ranges in the sidebar if needed.</p>
+
+            <h4>Advanced Tracking</h4>
+            <p>Enable Kalman Filter for smoother tracking. Optical Flow predicts motion during brief dropouts. CAMShift adapts to changing lighting conditions. Toggle these in the Laser Detection panel.</p>
+
+            <h4>Settings & Presets</h4>
+            <p>All settings autosave automatically. Refresh the page and your settings will be restored. Use the Settings panel to save named presets, load them later, or reset to defaults. Great for different venues or laser colors.</p>
+
+            <h4>Brush Modes</h4>
+            <p>Smooth: anti-aliased variable-width lines. Ribbon: simple tapered strokes. Glow/Neon: luminous effects. Basic: rounded strokes with black shadow. Dope: sharp ribbon with shadow. Arrow/Fat: directional arrows (Fat has colored shadow). Adjust width with <kbd>↑↓</kbd> keys.</p>
+
+            <h4>Erase Zone</h4>
+            <p>Enable the erase zone to create a "shake to clear" area. Point your laser at this zone to clear the canvas. Useful for live performances.</p>
           </div>
         </div>
 

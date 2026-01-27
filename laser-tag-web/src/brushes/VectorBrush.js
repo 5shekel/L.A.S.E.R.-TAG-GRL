@@ -735,18 +735,22 @@ export class VectorBrush extends BaseBrush {
       this.ctx.drawImage(this.backgroundCanvas, 0, 0);
     }
 
-    const cppModes = ['basic', 'dope', 'arrow', 'arrowFat'];
+    const quadModes = ['dope', 'arrow', 'arrowFat'];  // Modes that use quad-based ribbons
     const validStrokes = this.strokes.filter(s => s.points.length >= 2);
 
     // Draw strokes in creation order
     // For each stroke: draw stroke, then its drip trails
     for (const stroke of validStrokes) {
       const mode = stroke.mode || 'smooth';
-      const isCpp = cppModes.includes(mode);
+      const isQuadMode = quadModes.includes(mode);
       const strokeIdx = stroke.strokeIndex;
 
-      if (isCpp) {
-        // Draw shadow first for this C++ stroke
+      if (mode === 'basic') {
+        // Basic mode: rounded strokes with diagonal shadow
+        this.drawBasicStrokeShadow(this.ctx, stroke);
+        this.drawBasicStrokeMain(this.ctx, stroke);
+      } else if (isQuadMode) {
+        // Quad-based modes: dope, arrow, arrowFat - use ribbon quads
         this.drawCppStrokeShadow(this.ctx, stroke, mode);
         if (mode === 'arrow' || mode === 'arrowFat') {
           this.drawArrowHeadShadow(this.ctx, stroke);
@@ -808,12 +812,58 @@ export class VectorBrush extends BaseBrush {
   }
 
   /**
+   * Draw basic mode stroke shadow (rounded line strokes with diagonal offset)
+   */
+  drawBasicStrokeShadow(ctx, stroke) {
+    const points = stroke.points;
+    const offset = this.params.shadowOffset;
+
+    ctx.beginPath();
+    ctx.moveTo(points[0].x - offset, points[0].y + offset);
+
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x - offset, points[i].y + offset);
+    }
+
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.63)';
+    ctx.lineWidth = points[0].width || this.params.brushWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+  }
+
+  /**
+   * Draw basic mode stroke main color (rounded line strokes)
+   */
+  drawBasicStrokeMain(ctx, stroke) {
+    const points = stroke.points;
+    const color = stroke.color;
+
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+
+    ctx.strokeStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${this.params.opacity})`;
+    ctx.lineWidth = points[0].width || this.params.brushWidth;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+  }
+
+  /**
    * Draw C++ style stroke shadow as continuous path
+   * dope/arrow use black shadow, arrowFat uses configurable shadow color
    */
   drawCppStrokeShadow(ctx, stroke, mode) {
     const points = stroke.points;
     const offset = this.params.shadowOffset;
-    const shadowColor = stroke.shadowColor || this.params.shadowColor || '#000000';
+    // Only arrowFat uses the configurable shadow color; dope/arrow use black
+    const shadowColor = mode === 'arrowFat'
+      ? (stroke.shadowColor || this.params.shadowColor || '#FF0AC2')
+      : '#000000';
 
     ctx.beginPath();
 

@@ -89,6 +89,7 @@ export class PostProcessor {
     `;
 
     // Brightness threshold shader (extract bright areas)
+    // Uses max channel value instead of luminance for better glow on saturated colors
     const thresholdFragmentSource = `
       precision mediump float;
       varying vec2 v_texCoord;
@@ -96,7 +97,7 @@ export class PostProcessor {
       uniform float u_threshold;
       void main() {
         vec4 color = texture2D(u_texture, v_texCoord);
-        float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+        float brightness = max(max(color.r, color.g), color.b);
         if (brightness > u_threshold) {
           gl_FragColor = color;
         } else {

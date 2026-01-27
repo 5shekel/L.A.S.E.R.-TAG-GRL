@@ -60,6 +60,11 @@ export class TweakpaneGui {
       smoothing: 0.5,
       trackerPreset: 'Green Laser',
 
+      // Advanced tracking
+      useKalman: true,
+      useOpticalFlow: true,
+      useCamshift: false,
+
       // Display settings
       showDebug: true,
       backgroundColor: '#000000',
@@ -779,6 +784,23 @@ export class TweakpaneGui {
       max: 1,
       step: 0.05
     }).on('change', () => this.updateTrackerParams());
+
+    // Advanced tracking options
+    folder.addBlade({
+      view: 'separator'
+    });
+
+    folder.addBinding(this.state, 'useKalman', {
+      label: 'Kalman Filter'
+    }).on('change', () => this.updateTrackerParams());
+
+    folder.addBinding(this.state, 'useOpticalFlow', {
+      label: 'Optical Flow'
+    }).on('change', () => this.updateTrackerParams());
+
+    folder.addBinding(this.state, 'useCamshift', {
+      label: 'CAMShift'
+    }).on('change', () => this.updateTrackerParams());
   }
 
   /**
@@ -1093,7 +1115,10 @@ export class TweakpaneGui {
       satMax: this.state.satMax,
       valMin: this.state.valMin,
       valMax: this.state.valMax,
-      smoothing: this.state.smoothing
+      smoothing: this.state.smoothing,
+      useKalman: this.state.useKalman,
+      useOpticalFlow: this.state.useOpticalFlow,
+      useCamshift: this.state.useCamshift
     });
   }
 

@@ -749,88 +749,58 @@ export class VectorBrush extends BaseBrush {
 
   /**
    * Draw basic mode stroke shadow (45° diagonal ribbon - matches original C++)
-   * Original uses: glVertex2f(x + halfBrush, y + halfBrush) / glVertex2f(x - halfBrush, y - halfBrush)
-   * This creates a 45-degree angled ribbon regardless of stroke direction
+   * Original uses GL_QUAD_STRIP with glVertex2f(x + halfBrush, y + halfBrush) pattern
+   * We draw each quad separately to avoid self-overlap issues
    */
   drawBasicStrokeShadow(ctx, stroke) {
     const points = stroke.points;
     const offset = this.params.shadowOffset;
 
-    ctx.beginPath();
-
-    // Build diagonal quad strip (45° angle)
-    const topPoints = [];
-    const bottomPoints = [];
-
-    for (let i = 0; i < points.length; i++) {
-      const p = points[i];
-      const halfBrush = (p.width || this.params.brushWidth) / 2;
-
-      // Diagonal offsets: +halfBrush on both axes for one edge, -halfBrush for other
-      topPoints.push({
-        x: p.x - offset + halfBrush,
-        y: p.y + offset + halfBrush
-      });
-      bottomPoints.push({
-        x: p.x - offset - halfBrush,
-        y: p.y + offset - halfBrush
-      });
-    }
-
-    if (topPoints.length > 0) {
-      ctx.moveTo(topPoints[0].x, topPoints[0].y);
-      for (let i = 1; i < topPoints.length; i++) {
-        ctx.lineTo(topPoints[i].x, topPoints[i].y);
-      }
-      for (let i = bottomPoints.length - 1; i >= 0; i--) {
-        ctx.lineTo(bottomPoints[i].x, bottomPoints[i].y);
-      }
-      ctx.closePath();
-    }
-
     ctx.fillStyle = 'rgba(0, 0, 0, 0.63)';
-    ctx.fill('evenodd');  // evenodd prevents color inversion on self-overlapping paths
+
+    // Draw each segment as a separate quad (like GL_QUAD_STRIP)
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[i];
+      const p1 = points[i + 1];
+      const halfBrush0 = (p0.width || this.params.brushWidth) / 2;
+      const halfBrush1 = (p1.width || this.params.brushWidth) / 2;
+
+      // Diagonal offsets with shadow offset applied
+      ctx.beginPath();
+      ctx.moveTo(p0.x - offset + halfBrush0, p0.y + offset + halfBrush0);
+      ctx.lineTo(p1.x - offset + halfBrush1, p1.y + offset + halfBrush1);
+      ctx.lineTo(p1.x - offset - halfBrush1, p1.y + offset - halfBrush1);
+      ctx.lineTo(p0.x - offset - halfBrush0, p0.y + offset - halfBrush0);
+      ctx.closePath();
+      ctx.fill();
+    }
   }
 
   /**
    * Draw basic mode stroke main color (45° diagonal ribbon - matches original C++)
+   * Each segment drawn as separate quad to handle self-overlapping strokes
    */
   drawBasicStrokeMain(ctx, stroke) {
     const points = stroke.points;
     const color = stroke.color;
 
-    ctx.beginPath();
-
-    const topPoints = [];
-    const bottomPoints = [];
-
-    for (let i = 0; i < points.length; i++) {
-      const p = points[i];
-      const halfBrush = (p.width || this.params.brushWidth) / 2;
-
-      topPoints.push({
-        x: p.x + halfBrush,
-        y: p.y + halfBrush
-      });
-      bottomPoints.push({
-        x: p.x - halfBrush,
-        y: p.y - halfBrush
-      });
-    }
-
-    if (topPoints.length > 0) {
-      ctx.moveTo(topPoints[0].x, topPoints[0].y);
-      for (let i = 1; i < topPoints.length; i++) {
-        ctx.lineTo(topPoints[i].x, topPoints[i].y);
-      }
-      for (let i = bottomPoints.length - 1; i >= 0; i--) {
-        ctx.lineTo(bottomPoints[i].x, bottomPoints[i].y);
-      }
-      ctx.closePath();
-    }
-
     ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${this.params.opacity})`;
-    ctx.fill('evenodd');  // evenodd prevents color inversion on self-overlapping paths
+
+    // Draw each segment as a separate quad
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[i];
+      const p1 = points[i + 1];
+      const halfBrush0 = (p0.width || this.params.brushWidth) / 2;
+      const halfBrush1 = (p1.width || this.params.brushWidth) / 2;
+
+      ctx.beginPath();
+      ctx.moveTo(p0.x + halfBrush0, p0.y + halfBrush0);
+      ctx.lineTo(p1.x + halfBrush1, p1.y + halfBrush1);
+      ctx.lineTo(p1.x - halfBrush1, p1.y - halfBrush1);
+      ctx.lineTo(p0.x - halfBrush0, p0.y - halfBrush0);
+      ctx.closePath();
+      ctx.fill();
+    }
   }
 
   /**

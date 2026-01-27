@@ -78,8 +78,16 @@ export class LaserTracker {
       throw new Error('OpenCV.js not loaded');
     }
 
+    // Check if this is a resolution change (reinit)
+    const isReinit = this.width > 0 && this.height > 0;
+
     this.width = width;
     this.height = height;
+
+    // Clean up old matrices if they exist
+    if (isReinit) {
+      this.cleanupMatrices();
+    }
 
     // Create reusable matrices
     this.srcMat = new cv.Mat(height, width, cv.CV_8UC4);
@@ -91,10 +99,54 @@ export class LaserTracker {
     this.prevGray = new cv.Mat();
     this.currGray = new cv.Mat();
 
+    // Reset all tracking state on resolution change
+    this.resetTrackingState();
+
     // Initialize Kalman filter for 2D position + velocity tracking
     this.initKalmanFilter();
 
     console.log('LaserTracker initialized with Kalman filter, optical flow, and CAMShift support');
+  }
+
+  /**
+   * Clean up OpenCV matrices
+   */
+  cleanupMatrices() {
+    try {
+      if (this.srcMat && !this.srcMat.isDeleted()) this.srcMat.delete();
+      if (this.hsvMat && !this.hsvMat.isDeleted()) this.hsvMat.delete();
+      if (this.maskMat && !this.maskMat.isDeleted()) this.maskMat.delete();
+      if (this.morphKernel && !this.morphKernel.isDeleted()) this.morphKernel.delete();
+      if (this.prevGray && !this.prevGray.isDeleted()) this.prevGray.delete();
+      if (this.currGray && !this.currGray.isDeleted()) this.currGray.delete();
+      if (this.roiHist && !this.roiHist.isDeleted()) this.roiHist.delete();
+    } catch (e) {
+      console.warn('Error cleaning up matrices:', e);
+    }
+  }
+
+  /**
+   * Reset all tracking state (call on resolution change)
+   */
+  resetTrackingState() {
+    // Reset position tracking
+    this.currentPosition = null;
+    this.lastPosition = null;
+    this.predictedPosition = null;
+    this.velocity = { x: 0, y: 0 };
+    this.isTracking = false;
+    this.isNewStroke = true;
+    this.framesSinceLastDetection = 0;
+
+    // Reset Kalman state
+    this.kalmanState = null;
+
+    // Reset CAMShift state
+    this.trackWindow = null;
+    this.roiHist = null;
+    this.camshiftEnabled = false;
+
+    console.log('Tracking state reset');
   }
 
   /**

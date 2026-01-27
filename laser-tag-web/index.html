@@ -93,6 +93,26 @@
       color: #888;
       border-bottom: 1px solid #333;
       flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .panel-header button {
+      background: #333;
+      border: 1px solid #444;
+      color: #ccc;
+      padding: 4px 10px;
+      font-size: 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .panel-header button:hover {
+      background: #444;
+      color: #fff;
     }
 
     .panel-content {
@@ -317,6 +337,17 @@
     }
 
     /* Tweakpane customization - brighter colors */
+    #gui-container .tp-dfwv {
+      width: 100% !important;
+    }
+
+    #gui-container .tp-rotv_t {
+      text-align: center;
+      font-size: 14px;
+      letter-spacing: 3px;
+      padding: 12px 0;
+    }
+
     :root {
       --tp-base-background-color: hsl(0, 0%, 12%);
       --tp-base-shadow-color: hsla(0, 0%, 0%, 0.3);
@@ -417,7 +448,10 @@
         <!-- Right column: Preview -->
         <div class="right-column">
           <div class="panel preview-panel">
-            <div class="panel-header">Output Preview</div>
+            <div class="panel-header">
+              <span>Output Preview</span>
+              <button id="projector-btn">Open Projector</button>
+            </div>
             <div class="panel-content">
               <canvas id="projector-canvas"></canvas>
             </div>

@@ -194,6 +194,13 @@ function setupEventListeners() {
       app.handleMouseUp();
     }
   });
+
+  // Projector window button
+  document.getElementById('projector-btn').addEventListener('click', () => {
+    if (gui) {
+      gui.openProjectorWindow();
+    }
+  });
 }
 
 /**

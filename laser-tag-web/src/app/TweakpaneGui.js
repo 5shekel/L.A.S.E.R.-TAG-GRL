@@ -335,28 +335,26 @@ export class TweakpaneGui {
       this.triggerAutosave();
     });
 
-    // Mode names for mosaic
+    // Mode names for mosaic (6 modes: 2 web + 4 original C++)
     this.modeList = [
       { name: 'Smooth', value: 'smooth' },
-      { name: 'Ribbon', value: 'ribbon' },
       { name: 'Glow', value: 'glow' },
-      { name: 'Neon', value: 'neon' },
       { name: 'Basic', value: 'basic' },
       { name: 'Dope', value: 'dope' },
       { name: 'Arrow', value: 'arrow' },
       { name: 'Fat', value: 'arrowFat' }
     ];
 
-    // Mode selection as button grid (4x2)
+    // Mode selection as button grid (3x2)
     this.modeBlade = folder.addBlade({
       view: 'buttongrid',
-      size: [4, 2],
+      size: [3, 2],
       cells: (x, y) => ({
         title: this.modeList[y * 4 + x].name
       }),
       label: 'Mode'
     }).on('click', (ev) => {
-      const idx = ev.index[1] * 4 + ev.index[0];
+      const idx = ev.index[1] * 3 + ev.index[0];
       const mode = this.modeList[idx];
       this.state.brushMode = mode.value;
       const brush = this.app.getActiveBrush();

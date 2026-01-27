@@ -16,7 +16,7 @@ export class VectorBrush extends BaseBrush {
       maxWidth: 40,
       velocityScale: 0.5,    // How much velocity affects width
       smoothing: 0.3,        // Line smoothing factor
-      mode: 'smooth',        // 'smooth', 'ribbon', 'glow', 'neon', 'arrow', 'basic', 'dope', 'arrowFat'
+      mode: 'smooth',        // 'smooth', 'glow', 'basic', 'dope', 'arrow', 'arrowFat'
       shadowOffset: 8,       // Shadow offset for C++ style modes
       shadowColor: '#FF0AC2', // Shadow color for C++ style modes (magenta default)
       glowIntensity: 0.5,
@@ -200,14 +200,8 @@ export class VectorBrush extends BaseBrush {
     }
 
     switch (mode) {
-      case 'ribbon':
-        this.drawRibbonSegment(ctx, p0, p1, color);
-        break;
       case 'glow':
         this.drawGlowSegment(ctx, p0, p1, color);
-        break;
-      case 'neon':
-        this.drawNeonSegment(ctx, p0, p1, color);
         break;
       case 'smooth':
       default:
@@ -251,23 +245,6 @@ export class VectorBrush extends BaseBrush {
   }
 
   /**
-   * Draw a ribbon-style segment
-   */
-  drawRibbonSegment(ctx, p0, p1, color) {
-    const w0 = p0.width || this.params.brushWidth;
-    const w1 = p1.width || this.params.brushWidth;
-
-    ctx.beginPath();
-    ctx.moveTo(p0.x, p0.y);
-    ctx.lineTo(p1.x, p1.y);
-    ctx.strokeStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${this.params.opacity})`;
-    ctx.lineWidth = (w0 + w1) / 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-  }
-
-  /**
    * Draw a glowing segment
    */
   drawGlowSegment(ctx, p0, p1, color) {
@@ -287,40 +264,6 @@ export class VectorBrush extends BaseBrush {
       ctx.lineCap = 'round';
       ctx.stroke();
     }
-  }
-
-  /**
-   * Draw a neon-style segment with hard center
-   */
-  drawNeonSegment(ctx, p0, p1, color) {
-    const w = (p0.width + p1.width) / 2 || this.params.brushWidth;
-
-    // Outer glow
-    ctx.beginPath();
-    ctx.moveTo(p0.x, p0.y);
-    ctx.lineTo(p1.x, p1.y);
-    ctx.strokeStyle = `rgba(${color.r}, ${color.g}, ${color.b}, 0.3)`;
-    ctx.lineWidth = w + 20;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-
-    // Middle glow
-    ctx.beginPath();
-    ctx.moveTo(p0.x, p0.y);
-    ctx.lineTo(p1.x, p1.y);
-    ctx.strokeStyle = `rgba(${color.r}, ${color.g}, ${color.b}, 0.6)`;
-    ctx.lineWidth = w + 8;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-
-    // Bright center
-    ctx.beginPath();
-    ctx.moveTo(p0.x, p0.y);
-    ctx.lineTo(p1.x, p1.y);
-    ctx.strokeStyle = `rgba(255, 255, 255, ${this.params.opacity})`;
-    ctx.lineWidth = w / 3;
-    ctx.lineCap = 'round';
-    ctx.stroke();
   }
 
   // ============================================
@@ -761,23 +704,15 @@ export class VectorBrush extends BaseBrush {
           this.drawArrowHead(this.ctx, stroke);
         }
       } else {
-        // Standard stroke - no shadow
+        // Standard stroke - no shadow (smooth or glow)
         for (let i = 1; i < stroke.points.length; i++) {
           const p0 = stroke.points[i - 1];
           const p1 = stroke.points[i];
 
-          switch (mode) {
-            case 'ribbon':
-              this.drawRibbonSegment(this.ctx, p0, p1, stroke.color);
-              break;
-            case 'glow':
-              this.drawGlowSegment(this.ctx, p0, p1, stroke.color);
-              break;
-            case 'neon':
-              this.drawNeonSegment(this.ctx, p0, p1, stroke.color);
-              break;
-            default:
-              this.drawSmoothSegment(this.ctx, p0, p1, stroke.color);
+          if (mode === 'glow') {
+            this.drawGlowSegment(this.ctx, p0, p1, stroke.color);
+          } else {
+            this.drawSmoothSegment(this.ctx, p0, p1, stroke.color);
           }
         }
       }
@@ -812,45 +747,89 @@ export class VectorBrush extends BaseBrush {
   }
 
   /**
-   * Draw basic mode stroke shadow (rounded line strokes with diagonal offset)
+   * Draw basic mode stroke shadow (45° diagonal ribbon - matches original C++)
+   * Original uses: glVertex2f(x + halfBrush, y + halfBrush) / glVertex2f(x - halfBrush, y - halfBrush)
+   * This creates a 45-degree angled ribbon regardless of stroke direction
    */
   drawBasicStrokeShadow(ctx, stroke) {
     const points = stroke.points;
     const offset = this.params.shadowOffset;
 
     ctx.beginPath();
-    ctx.moveTo(points[0].x - offset, points[0].y + offset);
 
-    for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i].x - offset, points[i].y + offset);
+    // Build diagonal quad strip (45° angle)
+    const topPoints = [];
+    const bottomPoints = [];
+
+    for (let i = 0; i < points.length; i++) {
+      const p = points[i];
+      const halfBrush = (p.width || this.params.brushWidth) / 2;
+
+      // Diagonal offsets: +halfBrush on both axes for one edge, -halfBrush for other
+      topPoints.push({
+        x: p.x - offset + halfBrush,
+        y: p.y + offset + halfBrush
+      });
+      bottomPoints.push({
+        x: p.x - offset - halfBrush,
+        y: p.y + offset - halfBrush
+      });
     }
 
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.63)';
-    ctx.lineWidth = points[0].width || this.params.brushWidth;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke();
+    if (topPoints.length > 0) {
+      ctx.moveTo(topPoints[0].x, topPoints[0].y);
+      for (let i = 1; i < topPoints.length; i++) {
+        ctx.lineTo(topPoints[i].x, topPoints[i].y);
+      }
+      for (let i = bottomPoints.length - 1; i >= 0; i--) {
+        ctx.lineTo(bottomPoints[i].x, bottomPoints[i].y);
+      }
+      ctx.closePath();
+    }
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.63)';
+    ctx.fill();
   }
 
   /**
-   * Draw basic mode stroke main color (rounded line strokes)
+   * Draw basic mode stroke main color (45° diagonal ribbon - matches original C++)
    */
   drawBasicStrokeMain(ctx, stroke) {
     const points = stroke.points;
     const color = stroke.color;
 
     ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
 
-    for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i].x, points[i].y);
+    const topPoints = [];
+    const bottomPoints = [];
+
+    for (let i = 0; i < points.length; i++) {
+      const p = points[i];
+      const halfBrush = (p.width || this.params.brushWidth) / 2;
+
+      topPoints.push({
+        x: p.x + halfBrush,
+        y: p.y + halfBrush
+      });
+      bottomPoints.push({
+        x: p.x - halfBrush,
+        y: p.y - halfBrush
+      });
     }
 
-    ctx.strokeStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${this.params.opacity})`;
-    ctx.lineWidth = points[0].width || this.params.brushWidth;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke();
+    if (topPoints.length > 0) {
+      ctx.moveTo(topPoints[0].x, topPoints[0].y);
+      for (let i = 1; i < topPoints.length; i++) {
+        ctx.lineTo(topPoints[i].x, topPoints[i].y);
+      }
+      for (let i = bottomPoints.length - 1; i >= 0; i--) {
+        ctx.lineTo(bottomPoints[i].x, bottomPoints[i].y);
+      }
+      ctx.closePath();
+    }
+
+    ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${this.params.opacity})`;
+    ctx.fill();
   }
 
   /**

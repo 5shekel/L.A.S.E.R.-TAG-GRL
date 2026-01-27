@@ -14,10 +14,11 @@ L.A.S.E.R. TAG allows you to create digital graffiti using a laser pointer track
 
 - **Advanced laser tracking** with Kalman filter, optical flow, and CAMShift
 - **Real-time HSV color detection** using OpenCV.js (bundled locally)
-- **8 brush modes** with customizable colors and shadows
+- **6 brush modes** with customizable colors and shadows
 - **Drip effects** with physics-based animation
 - **WebGL bloom/glow** post-processing
 - **Dual color palettes** - 9 preset colors for brush and shadow
+- **Settings persistence** - autosave on change + named presets
 - **Perspective calibration** for projection mapping
 - **Floating Tweakpane UI** - minimal, collapsible panels
 - **Projector popup window** for dual-display setups
@@ -52,23 +53,16 @@ Open http://localhost:3000 and click START. Press `M` to use mouse input for tes
 
 ## Brush Modes
 
-### Standard Modes
 | Mode | Description |
 |------|-------------|
 | **Smooth** | Variable-width strokes - faster movement = thinner lines |
-| **Ribbon** | Consistent-width line strokes |
 | **Glow** | Multi-layer transparency for soft glow effect |
-| **Neon** | White center core with colored outer glow |
-
-### C++ Ports (from original vectorBrush.cpp)
-| Mode | Description |
-|------|-------------|
-| **Basic** | Simple stroke with diagonal drop shadow |
-| **Dope** | Ribbon following stroke direction with perpendicular shadow |
+| **Basic** | 45° diagonal ribbon with shadow (original C++ port) |
+| **Dope** | Perpendicular ribbon following stroke direction with black shadow |
 | **Arrow** | Dope style with triangular arrow head at stroke end |
-| **Fat** | Arrow with bold shadow (default magenta, customizable) |
+| **Fat** | Arrow with bold magenta shadow (customizable color) |
 
-The C++ modes use the original perpendicular calculation pattern `(nrmY, -nrmX)` for accurate ribbon geometry that follows stroke direction.
+The C++ ports (Basic, Dope, Arrow, Fat) use the original rendering patterns from `vectorBrush.cpp`. Basic uses diagonal offsets `(±halfBrush, ±halfBrush)` while Dope/Arrow/Fat use perpendicular calculation `(nrmY, -nrmX)` for ribbon geometry.
 
 ## Drip System
 
@@ -158,7 +152,7 @@ src/
 │   └── CoordWarping.js     # Perspective transform matrix
 ├── brushes/
 │   ├── BaseBrush.js        # Abstract brush interface
-│   ├── VectorBrush.js      # Main brush: 8 modes, drips, baking
+│   ├── VectorBrush.js      # Main brush: 6 modes, drips, baking
 │   └── PngBrush.js         # Stamp brush with PNG patterns
 └── effects/
     └── PostProcessor.js    # WebGL bloom shader pipeline

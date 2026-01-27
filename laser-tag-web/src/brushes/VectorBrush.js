@@ -168,7 +168,8 @@ export class VectorBrush extends BaseBrush {
       // Drip spawning - inverted from C++ so higher frequency = more drips
       // C++ used: ofRandom(0,freq) > freq-1 (higher freq = fewer drips)
       // We use: probability = freq/maxFreq (higher freq = more drips)
-      if (this.params.dripsEnabled) {
+      // Note: Glow mode doesn't get drips (doesn't look good)
+      if (this.params.dripsEnabled && this.params.mode !== 'glow') {
         const maxFreq = 120;
         const probability = this.params.dripsFrequency / maxFreq;
         if (Math.random() < probability) {
@@ -788,7 +789,7 @@ export class VectorBrush extends BaseBrush {
     }
 
     ctx.fillStyle = 'rgba(0, 0, 0, 0.63)';
-    ctx.fill();
+    ctx.fill('evenodd');  // evenodd prevents color inversion on self-overlapping paths
   }
 
   /**
@@ -829,7 +830,7 @@ export class VectorBrush extends BaseBrush {
     }
 
     ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${this.params.opacity})`;
-    ctx.fill();
+    ctx.fill('evenodd');  // evenodd prevents color inversion on self-overlapping paths
   }
 
   /**

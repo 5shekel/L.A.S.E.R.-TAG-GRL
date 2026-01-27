@@ -105,8 +105,11 @@ export class TweakpaneGui {
     this.createActionsFolder();
     this.createEraseZoneFolder();
 
-    // Sync initial state
+    // Sync initial state from app
     this.syncFromApp();
+
+    // Push settings to tracker to ensure it starts with correct values
+    this.updateTrackerParams();
 
     // Apply initial drip settings
     this.updateDripParams();
@@ -643,48 +646,82 @@ export class TweakpaneGui {
       }
     });
 
+    // HSV color preview (computed from min/max values)
+    this.state.hsvPreviewMin = this.hsvToHex(this.state.hueMin, this.state.satMin, this.state.valMin);
+    this.state.hsvPreviewMax = this.hsvToHex(this.state.hueMax, this.state.satMax, this.state.valMax);
+
+    folder.addBinding(this.state, 'hsvPreviewMin', {
+      label: 'Min Color',
+      view: 'color',
+      disabled: true
+    });
+
+    folder.addBinding(this.state, 'hsvPreviewMax', {
+      label: 'Max Color',
+      view: 'color',
+      disabled: true
+    });
+
     // HSV range controls
     folder.addBinding(this.state, 'hueMin', {
       label: 'Hue Min',
       min: 0,
       max: 180,
       step: 1
-    }).on('change', () => this.updateTrackerParams());
+    }).on('change', () => {
+      this.updateTrackerParams();
+      this.updateHsvPreviews();
+    });
 
     folder.addBinding(this.state, 'hueMax', {
       label: 'Hue Max',
       min: 0,
       max: 180,
       step: 1
-    }).on('change', () => this.updateTrackerParams());
+    }).on('change', () => {
+      this.updateTrackerParams();
+      this.updateHsvPreviews();
+    });
 
     folder.addBinding(this.state, 'satMin', {
       label: 'Sat Min',
       min: 0,
       max: 255,
       step: 1
-    }).on('change', () => this.updateTrackerParams());
+    }).on('change', () => {
+      this.updateTrackerParams();
+      this.updateHsvPreviews();
+    });
 
     folder.addBinding(this.state, 'satMax', {
       label: 'Sat Max',
       min: 0,
       max: 255,
       step: 1
-    }).on('change', () => this.updateTrackerParams());
+    }).on('change', () => {
+      this.updateTrackerParams();
+      this.updateHsvPreviews();
+    });
 
     folder.addBinding(this.state, 'valMin', {
       label: 'Val Min',
       min: 0,
       max: 255,
       step: 1
-    }).on('change', () => this.updateTrackerParams());
+    }).on('change', () => {
+      this.updateTrackerParams();
+      this.updateHsvPreviews();
+    });
 
     folder.addBinding(this.state, 'valMax', {
       label: 'Val Max',
       min: 0,
       max: 255,
       step: 1
-    }).on('change', () => this.updateTrackerParams());
+    }).on('change', () => {
+      this.updateTrackerParams();
+      this.updateHsvPreviews();
+    });
 
     folder.addBinding(this.state, 'smoothing', {
       label: 'Smoothing',
@@ -1041,6 +1078,40 @@ export class TweakpaneGui {
   toggleCalibration() {
     const isCalibrating = this.app.toggleCalibration();
     console.log('Calibration mode:', isCalibrating ? 'ON' : 'OFF');
+  }
+
+  /**
+   * Convert HSV (OpenCV format: H 0-180, S 0-255, V 0-255) to hex color
+   */
+  hsvToHex(h, s, v) {
+    // Convert from OpenCV HSV range to standard (H 0-360, S 0-1, V 0-1)
+    const hNorm = (h / 180) * 360;
+    const sNorm = s / 255;
+    const vNorm = v / 255;
+
+    const c = vNorm * sNorm;
+    const x = c * (1 - Math.abs((hNorm / 60) % 2 - 1));
+    const m = vNorm - c;
+
+    let r, g, b;
+    if (hNorm < 60) { r = c; g = x; b = 0; }
+    else if (hNorm < 120) { r = x; g = c; b = 0; }
+    else if (hNorm < 180) { r = 0; g = c; b = x; }
+    else if (hNorm < 240) { r = 0; g = x; b = c; }
+    else if (hNorm < 300) { r = x; g = 0; b = c; }
+    else { r = c; g = 0; b = x; }
+
+    const toHex = (n) => Math.round((n + m) * 255).toString(16).padStart(2, '0');
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  }
+
+  /**
+   * Update HSV color previews
+   */
+  updateHsvPreviews() {
+    this.state.hsvPreviewMin = this.hsvToHex(this.state.hueMin, this.state.satMin, this.state.valMin);
+    this.state.hsvPreviewMax = this.hsvToHex(this.state.hueMax, this.state.satMax, this.state.valMax);
+    this.pane.refresh();
   }
 
   /**

@@ -8,7 +8,8 @@ export class Camera {
     this.isReady = false;
     this.width = 640;
     this.height = 480;
-    this.mirror = false;  // Set true to flip horizontally
+    this.flipH = false;   // Flip horizontally
+    this.flipV = false;   // Flip vertically
   }
 
   /**
@@ -111,10 +112,16 @@ export class Camera {
     if (!this.isReady) return null;
 
     ctx.save();
-    if (this.mirror) {
-      // Flip horizontally for mirrored cameras
-      ctx.translate(this.width, 0);
-      ctx.scale(-1, 1);
+    // Apply flips
+    if (this.flipH || this.flipV) {
+      ctx.translate(
+        this.flipH ? this.width : 0,
+        this.flipV ? this.height : 0
+      );
+      ctx.scale(
+        this.flipH ? -1 : 1,
+        this.flipV ? -1 : 1
+      );
     }
     ctx.drawImage(this.video, 0, 0, this.width, this.height);
     ctx.restore();
@@ -123,11 +130,26 @@ export class Camera {
   }
 
   /**
-   * Toggle mirror mode
-   * @param {boolean} enabled - Whether to mirror the camera
+   * Toggle horizontal flip
+   * @param {boolean} enabled - Whether to flip horizontally
+   */
+  setFlipH(enabled) {
+    this.flipH = enabled;
+  }
+
+  /**
+   * Toggle vertical flip
+   * @param {boolean} enabled - Whether to flip vertically
+   */
+  setFlipV(enabled) {
+    this.flipV = enabled;
+  }
+
+  /**
+   * @deprecated Use setFlipH instead
    */
   setMirror(enabled) {
-    this.mirror = enabled;
+    this.flipH = enabled;
   }
 
   /**

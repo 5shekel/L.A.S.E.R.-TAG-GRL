@@ -64,8 +64,11 @@ export class TweakpaneGui {
       showDebug: true,
       backgroundColor: '#000000',
       brightness: 100,
-      mirrorCamera: false,
       useMouseInput: false,
+
+      // Camera settings
+      flipH: false,
+      flipV: false,
 
       // Erase zone settings
       eraseZoneEnabled: false,
@@ -95,6 +98,7 @@ export class TweakpaneGui {
     this.createColorsFolder();
     this.createStylesFolder();
     this.createEffectsFolder();  // Now includes Drips
+    this.createCameraFolder();
     this.createTrackingFolder();
     this.createCalibrationFolder();
     this.createDisplayFolder();
@@ -548,13 +552,13 @@ export class TweakpaneGui {
   }
 
   /**
-   * Create tracking settings folder
+   * Create camera settings folder
    */
-  async createTrackingFolder() {
-    const folder = this.pane.addFolder({ title: 'Laser Detection', expanded: false });
-    this.folders.tracking = folder;
+  async createCameraFolder() {
+    const folder = this.pane.addFolder({ title: 'Camera', expanded: true });
+    this.folders.camera = folder;
 
-    // Camera selection
+    // Camera selection dropdown
     try {
       const cameras = await this.app.camera.constructor.getAvailableCameras();
       if (cameras.length > 0) {
@@ -577,7 +581,7 @@ export class TweakpaneGui {
 
         this.state.selectedCamera = currentDeviceId;
         folder.addBinding(this.state, 'selectedCamera', {
-          label: 'Camera',
+          label: 'Device',
           options: cameraOptions
         }).on('change', async (ev) => {
           try {
@@ -595,6 +599,27 @@ export class TweakpaneGui {
     } catch (e) {
       console.warn('Could not enumerate cameras:', e);
     }
+
+    // Flip controls
+    folder.addBinding(this.state, 'flipH', {
+      label: 'Flip Horizontal'
+    }).on('change', (ev) => {
+      this.app.camera.setFlipH(ev.value);
+    });
+
+    folder.addBinding(this.state, 'flipV', {
+      label: 'Flip Vertical'
+    }).on('change', (ev) => {
+      this.app.camera.setFlipV(ev.value);
+    });
+  }
+
+  /**
+   * Create tracking settings folder
+   */
+  async createTrackingFolder() {
+    const folder = this.pane.addFolder({ title: 'Laser Detection', expanded: false });
+    this.folders.tracking = folder;
 
     // Preset selector
     folder.addBinding(this.state, 'trackerPreset', {
@@ -742,12 +767,6 @@ export class TweakpaneGui {
       label: 'Mouse (M)'
     }).on('change', (ev) => {
       this.app.useMouseInput = ev.value;
-    });
-
-    folder.addBinding(this.state, 'mirrorCamera', {
-      label: 'Mirror'
-    }).on('change', (ev) => {
-      this.app.camera.setMirror(ev.value);
     });
 
     folder.addButton({ title: 'Fullscreen' }).on('click', () => {

@@ -517,9 +517,9 @@ export class AppController {
         return Math.abs(p.x - defaultX) > 0.001 || Math.abs(p.y - defaultY) > 0.001;
       });
 
-      if (isWarped) {
+      if (isWarped && !this.isProjectorCalibrating) {
         // Apply perspective warp using CSS matrix3d on the canvas element
-        // Compute homography from unit rect to the quad
+        // (Disabled during calibration so handles can be dragged correctly)
         const H = Homography.createProjectionMapping(w, h, quad, w, h);
         const cssMatrix = Homography.toMatrix3d(H, w, h);
 
@@ -529,11 +529,16 @@ export class AppController {
 
         // Draw content at full size (CSS will warp it)
         popupCtx.drawImage(srcCanvas, 0, 0, w, h);
+      } else if (isWarped && this.isProjectorCalibrating) {
+        // During calibration, show unwarped view with overlay
+        // Reset any existing transform
+        popupCanvas.style.transform = 'none';
 
-        // Draw calibration overlay on popup if active
-        if (this.isProjectorCalibrating) {
-          this.drawProjectorCalibrationOverlay(popupCtx, w, h);
-        }
+        // Draw content at full size
+        popupCtx.drawImage(srcCanvas, 0, 0, w, h);
+
+        // Draw calibration overlay
+        this.drawProjectorCalibrationOverlay(popupCtx, w, h);
       } else {
         // No warping needed - reset any transform and draw normally
         popupCanvas.style.transform = 'none';

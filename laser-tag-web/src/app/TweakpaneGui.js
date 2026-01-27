@@ -350,7 +350,7 @@ export class TweakpaneGui {
       view: 'buttongrid',
       size: [3, 2],
       cells: (x, y) => ({
-        title: this.modeList[y * 4 + x].name
+        title: this.modeList[y * 3 + x].name
       }),
       label: 'Mode'
     }).on('click', (ev) => {

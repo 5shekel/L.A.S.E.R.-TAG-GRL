@@ -1,4 +1,4 @@
-# Deploy L.A.S.E.R. TAG to GitHub Pages
+# Deploy L.A.S.E.R. TAG to GitHub Pages with custom domain
 name: Deploy to GitHub Pages
 
 on:
@@ -6,6 +6,7 @@ on:
     branches: ['master', 'main']
     paths:
       - 'laser-tag-web/**'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 permissions:
@@ -37,9 +38,10 @@ jobs:
 
       - name: Build
         working-directory: laser-tag-web
-        env:
-          GITHUB_PAGES: true
         run: npm run build
+
+      - name: Add CNAME for custom domain
+        run: echo "laser-tag.localheist.com" > laser-tag-web/dist/CNAME
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

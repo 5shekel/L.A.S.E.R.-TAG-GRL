@@ -152,23 +152,47 @@ function setupEventListeners() {
     }
   });
 
-  // Projector canvas mouse events for mouse input mode
+  // Projector canvas mouse events for mouse input mode and projector calibration
   const projectorCanvas = document.getElementById('projector-canvas');
+  let projectorDragging = false;
 
   projectorCanvas.addEventListener('mousedown', (e) => {
-    if (app) app.handleMouseDown(e);
+    if (!app) return;
+    // Check for projector calibration first
+    if (app.isProjectorCalibrating) {
+      const idx = app.selectProjectorPoint(e.clientX, e.clientY);
+      if (idx >= 0) {
+        projectorDragging = true;
+      }
+    } else {
+      app.handleMouseDown(e);
+    }
   });
 
   projectorCanvas.addEventListener('mousemove', (e) => {
-    if (app) app.handleMouseMove(e);
+    if (!app) return;
+    if (app.isProjectorCalibrating && projectorDragging && app.projectorSelectedPoint >= 0) {
+      app.moveProjectorPoint(app.projectorSelectedPoint, e.clientX, e.clientY);
+    } else if (!app.isProjectorCalibrating) {
+      app.handleMouseMove(e);
+    }
   });
 
   projectorCanvas.addEventListener('mouseup', () => {
-    if (app) app.handleMouseUp();
+    if (!app) return;
+    projectorDragging = false;
+    app.projectorSelectedPoint = -1;
+    if (!app.isProjectorCalibrating) {
+      app.handleMouseUp();
+    }
   });
 
   projectorCanvas.addEventListener('mouseleave', () => {
-    if (app) app.handleMouseUp();
+    if (!app) return;
+    projectorDragging = false;
+    if (!app.isProjectorCalibrating) {
+      app.handleMouseUp();
+    }
   });
 }
 
@@ -192,15 +216,21 @@ function handleKeyDown(e) {
       break;
 
     case ' ':
-      // Toggle calibration
+      // Toggle camera calibration
       app.toggleCalibration();
       e.preventDefault();
       break;
 
+    case 'p':
+      // Toggle projector calibration
+      app.toggleProjectorCalibration();
+      break;
+
     case 's':
       if (e.ctrlKey || e.metaKey) {
-        // Save calibration
+        // Save both calibrations
         app.saveCalibration();
+        app.saveProjectorCalibration();
         e.preventDefault();
       }
       break;

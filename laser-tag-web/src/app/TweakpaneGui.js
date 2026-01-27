@@ -676,23 +676,42 @@ export class TweakpaneGui {
     const folder = this.pane.addFolder({ title: 'Calibration', expanded: false });
     this.folders.calibration = folder;
 
-    folder.addButton({ title: 'Toggle Calibration' }).on('click', () => {
+    // Camera calibration (input)
+    folder.addBlade({
+      view: 'text',
+      label: '',
+      parse: (v) => String(v),
+      value: '--- Camera (Input) ---'
+    });
+
+    folder.addButton({ title: 'Camera Calib (Space)' }).on('click', () => {
       this.toggleCalibration();
     });
 
-    folder.addButton({ title: 'Save' }).on('click', () => {
-      this.app.saveCalibration();
-    });
-
-    folder.addButton({ title: 'Reset' }).on('click', () => {
+    folder.addButton({ title: 'Reset Camera' }).on('click', () => {
       this.app.resetCalibration();
     });
 
+    // Projector calibration (output)
     folder.addBlade({
       view: 'text',
-      label: 'Info',
+      label: '',
       parse: (v) => String(v),
-      value: 'Drag corners on debug view'
+      value: '--- Projector (Output) ---'
+    });
+
+    folder.addButton({ title: 'Projector Calib (P)' }).on('click', () => {
+      this.app.toggleProjectorCalibration();
+    });
+
+    folder.addButton({ title: 'Reset Projector' }).on('click', () => {
+      this.app.resetProjectorCalibration();
+    });
+
+    // Save all
+    folder.addButton({ title: 'Save All (Ctrl+S)' }).on('click', () => {
+      this.app.saveCalibration();
+      this.app.saveProjectorCalibration();
     });
   }
 

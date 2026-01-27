@@ -32,7 +32,9 @@ export class AppController {
 
     // State
     this.isRunning = false;
-    this.isCalibrating = false;
+    this.isCalibrating = false;  // Camera calibration
+    this.isProjectorCalibrating = false;  // Projector output calibration
+    this.projectorSelectedPoint = -1;
     this.frameCount = 0;
     this.fps = 0;
     this.lastFpsUpdate = 0;
@@ -58,6 +60,14 @@ export class AppController {
       eraseZoneEnabled: false,
       eraseZoneX: 0.0,       // Left edge (0-1)
       eraseZoneY: 0.0,       // Top edge (0-1)
+      // Projector output quad (normalized 0-1 coordinates)
+      // Default is full canvas, can be adjusted to limit projection area
+      projectorQuad: [
+        { x: 0, y: 0 },      // Top-left
+        { x: 1, y: 0 },      // Top-right
+        { x: 1, y: 1 },      // Bottom-right
+        { x: 0, y: 1 }       // Bottom-left
+      ]
       eraseZoneWidth: 0.15,  // Width (0-1)
       eraseZoneHeight: 0.15  // Height (0-1)
     };
@@ -116,8 +126,9 @@ export class AppController {
       this.projectorCanvas.height
     );
 
-    // Try to load saved calibration
+    // Try to load saved calibrations
     this.warping.load();
+    this.loadProjectorCalibration();
 
     // Initialize brushes
     this.initBrushes();
@@ -478,6 +489,11 @@ export class AppController {
       ctx.restore();
     }
 
+    // Draw projector calibration overlay if active
+    if (this.isProjectorCalibrating) {
+      this.drawProjectorCalibrationOverlay(ctx);
+    }
+
     // Also draw to popup projector window if open
     if (this.projectorPopup && this.projectorPopup.window && !this.projectorPopup.window.closed) {
       const popupCtx = this.projectorPopup.ctx;
@@ -591,6 +607,190 @@ export class AppController {
   resetCalibration() {
     this.warping.setSourceDimensions(this.camera.width, this.camera.height);
     console.log('Calibration reset');
+  }
+
+  // =========================================
+  // Projector Calibration (Output Warping)
+  // =========================================
+
+  /**
+   * Toggle projector calibration mode
+   */
+  toggleProjectorCalibration() {
+    this.isProjectorCalibrating = !this.isProjectorCalibrating;
+    if (this.isProjectorCalibrating) {
+      // Turn off camera calibration if on
+      this.isCalibrating = false;
+    }
+    this.notifyStateChange('projectorCalibrating', this.isProjectorCalibrating);
+    return this.isProjectorCalibrating;
+  }
+
+  /**
+   * Draw projector calibration overlay with draggable corners
+   */
+  drawProjectorCalibrationOverlay(ctx) {
+    const w = this.projectorCanvas.width;
+    const h = this.projectorCanvas.height;
+    const quad = this.settings.projectorQuad;
+
+    // Convert normalized coords to pixels
+    const points = quad.map(p => ({
+      x: p.x * w,
+      y: p.y * h
+    }));
+
+    // Draw semi-transparent background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(0, 0, w, h);
+
+    // Draw the quad outline (white)
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    ctx.lineTo(points[1].x, points[1].y);
+    ctx.lineTo(points[2].x, points[2].y);
+    ctx.lineTo(points[3].x, points[3].y);
+    ctx.closePath();
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Draw diagonal lines for reference
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    ctx.lineTo(points[2].x, points[2].y);
+    ctx.moveTo(points[1].x, points[1].y);
+    ctx.lineTo(points[3].x, points[3].y);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Draw corner handles with colors (like original C++)
+    const colors = ['#FF0000', '#00FF00', '#0000FF', '#00FFFF']; // TL, TR, BR, BL
+    const labels = ['TL', 'TR', 'BR', 'BL'];
+    const handleRadius = 15;
+
+    points.forEach((p, i) => {
+      // Outer circle
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, handleRadius, 0, Math.PI * 2);
+      ctx.fillStyle = this.projectorSelectedPoint === i ? '#FFFF00' : colors[i];
+      ctx.fill();
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Label
+      ctx.fillStyle = '#000000';
+      ctx.font = 'bold 10px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(labels[i], p.x, p.y);
+    });
+
+    // Instructions
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Drag corners to adjust projection area', w / 2, 30);
+    ctx.fillText('Press P to exit, Ctrl+S to save', w / 2, 55);
+  }
+
+  /**
+   * Select projector calibration point at given coordinates
+   */
+  selectProjectorPoint(clientX, clientY) {
+    if (!this.isProjectorCalibrating) return -1;
+
+    const rect = this.projectorCanvas.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    const scaleX = this.projectorCanvas.width / rect.width;
+    const scaleY = this.projectorCanvas.height / rect.height;
+    const canvasX = x * scaleX;
+    const canvasY = y * scaleY;
+
+    const w = this.projectorCanvas.width;
+    const h = this.projectorCanvas.height;
+    const handleRadius = 20;
+
+    // Find closest point within radius
+    let closestDist = handleRadius;
+    let closestIdx = -1;
+
+    this.settings.projectorQuad.forEach((p, i) => {
+      const px = p.x * w;
+      const py = p.y * h;
+      const dist = Math.sqrt((canvasX - px) ** 2 + (canvasY - py) ** 2);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestIdx = i;
+      }
+    });
+
+    this.projectorSelectedPoint = closestIdx;
+    return closestIdx;
+  }
+
+  /**
+   * Move selected projector calibration point
+   */
+  moveProjectorPoint(pointIndex, clientX, clientY) {
+    if (pointIndex < 0 || pointIndex >= 4) return;
+
+    const rect = this.projectorCanvas.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    const scaleX = this.projectorCanvas.width / rect.width;
+    const scaleY = this.projectorCanvas.height / rect.height;
+    const canvasX = x * scaleX;
+    const canvasY = y * scaleY;
+
+    // Store as normalized coordinates (0-1)
+    this.settings.projectorQuad[pointIndex] = {
+      x: Math.max(0, Math.min(1, canvasX / this.projectorCanvas.width)),
+      y: Math.max(0, Math.min(1, canvasY / this.projectorCanvas.height))
+    };
+  }
+
+  /**
+   * Save projector calibration to localStorage
+   */
+  saveProjectorCalibration() {
+    try {
+      localStorage.setItem('laserTag_projectorQuad', JSON.stringify(this.settings.projectorQuad));
+      console.log('Projector calibration saved');
+    } catch (e) {
+      console.error('Failed to save projector calibration:', e);
+    }
+  }
+
+  /**
+   * Load projector calibration from localStorage
+   */
+  loadProjectorCalibration() {
+    try {
+      const saved = localStorage.getItem('laserTag_projectorQuad');
+      if (saved) {
+        this.settings.projectorQuad = JSON.parse(saved);
+        console.log('Projector calibration loaded');
+      }
+    } catch (e) {
+      console.error('Failed to load projector calibration:', e);
+    }
+  }
+
+  /**
+   * Reset projector calibration to full canvas
+   */
+  resetProjectorCalibration() {
+    this.settings.projectorQuad = [
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 1, y: 1 },
+      { x: 0, y: 1 }
+    ];
+    console.log('Projector calibration reset');
   }
 
   /**

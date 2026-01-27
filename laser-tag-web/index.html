@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>L.A.S.E.R. TAG</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <style>
     * {
       margin: 0;
@@ -220,6 +221,24 @@
       display: none;
     }
 
+    #bg-animation {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    .overlay-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
     .loading-overlay h1 {
       font-size: 48px;
       font-weight: 300;
@@ -300,11 +319,14 @@
 
   <!-- Loading/Start overlay -->
   <div id="loading-overlay" class="loading-overlay">
-    <h1>L.A.S.E.R. TAG</h1>
-    <p>Browser-based laser graffiti system</p>
-    <button id="start-button">START</button>
-    <p id="loading-status"></p>
-    <p id="error-message" class="error-message"></p>
+    <canvas id="bg-animation"></canvas>
+    <div class="overlay-content">
+      <h1>L.A.S.E.R. TAG</h1>
+      <p>Browser-based laser graffiti system</p>
+      <button id="start-button">START</button>
+      <p id="loading-status"></p>
+      <p id="error-message" class="error-message"></p>
+    </div>
   </div>
 
   <!-- Main application container -->
@@ -368,6 +390,148 @@
       <div id="gui-container"></div>
     </div>
   </div>
+
+  <!-- Background animation for start screen -->
+  <script>
+    (function() {
+      const canvas = document.getElementById('bg-animation');
+      const ctx = canvas.getContext('2d');
+      let animationId;
+
+      // Laser colors
+      const colors = [
+        { r: 0, g: 255, b: 100 },   // Green
+        { r: 255, g: 50, b: 50 },   // Red
+        { r: 100, g: 150, b: 255 }, // Blue
+        { r: 255, g: 100, b: 255 }, // Magenta
+      ];
+
+      // Laser trails
+      const trails = [];
+      const maxTrails = 5;
+
+      class LaserTrail {
+        constructor() {
+          this.reset();
+        }
+
+        reset() {
+          this.color = colors[Math.floor(Math.random() * colors.length)];
+          this.points = [];
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+          this.vx = (Math.random() - 0.5) * 4;
+          this.vy = (Math.random() - 0.5) * 4;
+          this.life = 200 + Math.random() * 300;
+          this.maxLife = this.life;
+          this.width = 2 + Math.random() * 4;
+        }
+
+        update() {
+          // Add current position to trail
+          this.points.push({ x: this.x, y: this.y });
+          if (this.points.length > 60) {
+            this.points.shift();
+          }
+
+          // Smooth random movement
+          this.vx += (Math.random() - 0.5) * 0.5;
+          this.vy += (Math.random() - 0.5) * 0.5;
+          this.vx = Math.max(-5, Math.min(5, this.vx));
+          this.vy = Math.max(-5, Math.min(5, this.vy));
+
+          this.x += this.vx;
+          this.y += this.vy;
+
+          // Bounce off edges
+          if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+          if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+          this.x = Math.max(0, Math.min(canvas.width, this.x));
+          this.y = Math.max(0, Math.min(canvas.height, this.y));
+
+          this.life--;
+          if (this.life <= 0) this.reset();
+        }
+
+        draw() {
+          if (this.points.length < 2) return;
+
+          const alpha = Math.min(1, this.life / 50);
+          const { r, g, b } = this.color;
+
+          // Glow effect
+          ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+          ctx.shadowBlur = 20;
+
+          // Draw trail
+          ctx.beginPath();
+          ctx.moveTo(this.points[0].x, this.points[0].y);
+
+          for (let i = 1; i < this.points.length; i++) {
+            const p = this.points[i];
+            ctx.lineTo(p.x, p.y);
+          }
+
+          ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.6})`;
+          ctx.lineWidth = this.width;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.stroke();
+
+          // Bright core
+          ctx.shadowBlur = 10;
+          ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.8})`;
+          ctx.lineWidth = this.width * 0.3;
+          ctx.stroke();
+
+          ctx.shadowBlur = 0;
+        }
+      }
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+
+      function animate() {
+        // Semi-transparent fade for trail effect
+        ctx.fillStyle = 'rgba(10, 10, 10, 0.15)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        trails.forEach(trail => {
+          trail.update();
+          trail.draw();
+        });
+
+        animationId = requestAnimationFrame(animate);
+      }
+
+      function init() {
+        resize();
+        for (let i = 0; i < maxTrails; i++) {
+          trails.push(new LaserTrail());
+        }
+        animate();
+      }
+
+      window.addEventListener('resize', resize);
+
+      // Stop animation when overlay is hidden
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.target.classList.contains('hidden')) {
+            cancelAnimationFrame(animationId);
+            observer.disconnect();
+          }
+        });
+      });
+
+      const overlay = document.getElementById('loading-overlay');
+      observer.observe(overlay, { attributes: true, attributeFilter: ['class'] });
+
+      init();
+    })();
+  </script>
 
   <!-- OpenCV.js loaded locally for offline support -->
   <script async src="lib/opencv.js" onload="window.cvReady = true;"></script>

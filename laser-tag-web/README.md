@@ -8,11 +8,12 @@ L.A.S.E.R. TAG allows you to create digital graffiti using a laser pointer track
 
 ## Live Demo
 
-**[Try it online](https://leonfedotov.github.io/L.A.S.E.R.-TAG-GRL/)** (requires camera access)
+**[Try it online](https://laser-tag.localheist.com)** (requires camera access)
 
 ## Features
 
-- **Real-time laser tracking** using OpenCV.js (bundled locally for offline use)
+- **Advanced laser tracking** with Kalman filter, optical flow, and CAMShift
+- **Real-time HSV color detection** using OpenCV.js (bundled locally)
 - **8 brush modes** with customizable colors and shadows
 - **Drip effects** with physics-based animation
 - **WebGL bloom/glow** post-processing
@@ -20,6 +21,7 @@ L.A.S.E.R. TAG allows you to create digital graffiti using a laser pointer track
 - **Perspective calibration** for projection mapping
 - **Floating Tweakpane UI** - minimal, collapsible panels
 - **Projector popup window** for dual-display setups
+- **Combined input modes** - mouse and tracking can work together
 - **Stroke baking system** - completed strokes become immutable background
 - **Works offline** - all dependencies bundled locally
 
@@ -43,6 +45,8 @@ Open http://localhost:3000 and click START. Press `M` to use mouse input for tes
 | `F` | Toggle fullscreen |
 | `D` | Toggle camera view |
 | `M` | Toggle mouse input (for testing) |
+| `E` | Erase zone mode |
+| `P` | Open projector popup |
 | `1-4` | Switch brush type |
 | `Arrow Up/Down` | Adjust brush size |
 
@@ -75,7 +79,34 @@ Drips simulate paint dripping from strokes:
 - **Direction** - South, West, North, or East
 - **Width** (1-25) - Drip line thickness
 
-Drips use physics-based animation with deceleration as they approach their target distance. Each drip is associated with its parent stroke for proper layering - newer strokes appear above older drips.
+Drips use physics-based animation with deceleration as they approach their target distance. Each drip is associated with its parent stroke for proper layering.
+
+## Advanced Tracking
+
+The tracker uses multiple algorithms for robust detection:
+
+### Kalman Filter
+Smooths position data and predicts movement using a 4-state model (x, vx, y, vy). Reduces jitter and provides velocity estimation for motion prediction during detection dropouts.
+
+### Optical Flow (Lucas-Kanade)
+Tracks feature points between frames to predict motion when the laser temporarily disappears. Uses pyramidal LK for multi-scale tracking.
+
+### CAMShift (Optional)
+Continuously Adaptive Mean Shift algorithm that adapts to changing object size. Useful for tracking larger colored objects rather than laser points.
+
+### Detection Presets
+
+| Preset | Use Case | Val Min |
+|--------|----------|---------|
+| **Green Laser** | Green laser pointer | 200 |
+| **Red Laser** | Red laser pointer | 200 |
+| **Blue Laser** | Blue laser pointer | 200 |
+| **White Laser** | White/multicolor laser | 240 |
+| **Red Object** | Red colored objects | 80 |
+| **Green Object** | Green colored objects | 80 |
+| **Blue Object** | Blue colored objects | 80 |
+
+Laser presets use high brightness thresholds (200+) for precise detection. Object presets use lower thresholds (80) for tracking colored objects like balls or markers.
 
 ## Stroke Layering System
 
@@ -103,19 +134,6 @@ Parameters:
 - **Bloom Intensity** (0-2) - Strength of glow
 - **Bloom Threshold** (0-1) - Brightness cutoff
 
-## Laser Detection
-
-Default HSV ranges optimized for different laser colors:
-
-| Laser | Hue | Saturation | Value |
-|-------|-----|------------|-------|
-| Green | 35-85 | 50-255 | 200-255 |
-| Red | 0-15 | 100-255 | 200-255 |
-| Blue | 100-130 | 100-255 | 200-255 |
-| White | 0-180 | 0-50 | 240-255 |
-
-The tracker uses OpenCV.js for HSV color space conversion and contour detection to find the brightest matching point.
-
 ## Calibration
 
 4-point perspective correction maps camera coordinates to projector output:
@@ -136,7 +154,7 @@ src/
 │   └── TweakpaneGui.js     # Floating UI with color/mode mosaics
 ├── tracking/
 │   ├── Camera.js           # WebRTC camera, device selection
-│   ├── LaserTracker.js     # OpenCV.js HSV tracking
+│   ├── LaserTracker.js     # OpenCV.js HSV + Kalman + OpticalFlow
 │   └── CoordWarping.js     # Perspective transform matrix
 ├── brushes/
 │   ├── BaseBrush.js        # Abstract brush interface
@@ -173,6 +191,7 @@ GITHUB_PAGES=true npm run build
 | **WebGL** | Post-processing shaders |
 | **gl-matrix** | Matrix math for perspective |
 | **WebRTC** | Camera access |
+| **kalman-filter** | State estimation for smooth tracking |
 
 ## Credits
 
@@ -181,7 +200,9 @@ GITHUB_PAGES=true npm run build
 - **Theodore Watson** - PNG brush, vector brush implementation
 - **Zachary Lieberman** - Graff letter brush, gesture machine
 
-**Browser port:** 2024-2025
+**Browser port:**
+- **Leon Fedotov** - JavaScript modernization and new features
+- **Claude (Anthropic)** - AI pair programming assistant
 
 ## License
 

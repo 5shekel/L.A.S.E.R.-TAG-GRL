@@ -2,8 +2,8 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   root: '.',
-  // Use repository name for GitHub Pages, or './' for local/other hosting
-  base: process.env.GITHUB_PAGES ? '/L.A.S.E.R.-TAG-GRL/' : './',
+  // Custom domain uses root path, fallback to relative for local dev
+  base: process.env.GITHUB_PAGES ? '/' : './',
   server: {
     port: 3000,
     open: true,

@@ -680,18 +680,6 @@
         ctx.stroke();
       }
 
-      function drawNoise() {
-        // Add random yellow pixel noise
-        const noiseCount = Math.floor(canvas.width * canvas.height / 8000);
-        for (let i = 0; i < noiseCount; i++) {
-          const x = Math.random() * canvas.width;
-          const y = Math.random() * canvas.height;
-          const alpha = 0.1 + Math.random() * 0.3;
-          ctx.fillStyle = `rgba(255, 220, 50, ${alpha})`;
-          ctx.fillRect(x, y, 1 + Math.random() * 2, 1 + Math.random() * 2);
-        }
-      }
-
       function draw() {
         ctx.fillStyle = '#0a0a0a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -712,9 +700,6 @@
             drawIsoCube(x, y, size);
           }
         }
-
-        // Draw yellow pixel noise
-        drawNoise();
 
         // Update offset for floating effect
         offset.x += speed * direction.x;

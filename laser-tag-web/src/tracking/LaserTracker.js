@@ -215,10 +215,10 @@ export class LaserTracker {
       // Primary detection: HSV color thresholding
       let detectedPosition = this.detectByColor();
 
-      // If no detection and we have previous position, try optical flow prediction
-      if (!detectedPosition && this.params.useOpticalFlow && this.lastPosition) {
-        detectedPosition = this.predictWithOpticalFlow();
-      }
+      // Note: We intentionally do NOT use optical flow to predict position when
+      // detection is lost. For laser tagging, when the artist turns off the laser,
+      // drawing should stop immediately to allow non-continuous lines.
+      // Optical flow is only used to refine tracking when detection IS present.
 
       // If using CAMShift and we have a track window, refine position
       if (detectedPosition && this.params.useCamshift && this.trackWindow) {

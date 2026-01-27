@@ -603,6 +603,30 @@ export class TweakpaneGui {
       console.warn('Could not enumerate cameras:', e);
     }
 
+    // Resolution selector
+    this.state.resolution = '640x480';
+    folder.addBinding(this.state, 'resolution', {
+      label: 'Resolution',
+      options: {
+        '640×480 (VGA)': '640x480',
+        '1280×720 (HD)': '1280x720',
+        '1920×1080 (Full HD)': '1920x1080'
+      }
+    }).on('change', async (ev) => {
+      const [w, h] = ev.value.split('x').map(Number);
+      try {
+        await this.app.camera.setResolution(w, h);
+        this.app.debugCanvas.width = this.app.camera.width;
+        this.app.debugCanvas.height = this.app.camera.height;
+        this.app.captureCanvas.width = this.app.camera.width;
+        this.app.captureCanvas.height = this.app.camera.height;
+        this.app.tracker.init(this.app.camera.width, this.app.camera.height);
+        console.log('Resolution changed to:', this.app.camera.width, 'x', this.app.camera.height);
+      } catch (e) {
+        console.error('Failed to change resolution:', e);
+      }
+    });
+
     // Flip controls
     folder.addBinding(this.state, 'flipH', {
       label: 'Flip Horizontal'

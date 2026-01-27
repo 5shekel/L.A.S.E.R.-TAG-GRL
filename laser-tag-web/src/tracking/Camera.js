@@ -104,6 +104,41 @@ export class Camera {
   }
 
   /**
+   * Change camera resolution
+   * @param {number} width - Desired width
+   * @param {number} height - Desired height
+   */
+  async setResolution(width, height) {
+    if (!this.stream) return;
+
+    const videoTrack = this.stream.getVideoTracks()[0];
+    if (!videoTrack) return;
+
+    const deviceId = videoTrack.getSettings().deviceId;
+
+    // Stop current stream
+    this.stop();
+
+    // Restart with new resolution
+    const constraints = {
+      video: {
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        width: { ideal: width },
+        height: { ideal: height }
+      },
+      audio: false
+    };
+
+    this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+    this.video.srcObject = this.stream;
+    await this.video.play();
+
+    this.width = this.video.videoWidth;
+    this.height = this.video.videoHeight;
+    console.log(`Resolution changed to: ${this.width}x${this.height}`);
+  }
+
+  /**
    * Get current video frame as ImageData
    * @param {CanvasRenderingContext2D} ctx - Canvas context to use for capture
    * @returns {ImageData|null}

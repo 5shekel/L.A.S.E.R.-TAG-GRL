@@ -98,7 +98,7 @@ export class AppController {
     await this.camera.init(this.videoElement, {
       width: 640,
       height: 480,
-      frameRate: 30
+      frameRate: 60
     });
 
     // Set capture canvas to camera dimensions

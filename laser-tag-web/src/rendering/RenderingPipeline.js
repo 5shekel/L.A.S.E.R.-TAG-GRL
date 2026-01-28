@@ -30,6 +30,10 @@ export class RenderingPipeline {
 
     // Settings reference
     this.settings = null;
+
+    // Throttle secondary canvas rendering (every N frames)
+    this.frameCount = 0;
+    this.secondaryRenderInterval = 2; // Render clone/popup every 2nd frame
   }
 
   /**
@@ -77,8 +81,13 @@ export class RenderingPipeline {
    */
   render() {
     this.renderMainCanvas();
-    this.renderCloneCanvas();
-    this.renderPopupWindow();
+
+    // Throttle secondary canvas rendering for performance
+    this.frameCount++;
+    if (this.frameCount % this.secondaryRenderInterval === 0) {
+      this.renderCloneCanvas();
+      this.renderPopupWindow();
+    }
   }
 
   /**

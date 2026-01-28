@@ -3,6 +3,9 @@ name: Build Standalone
 on:
   push:
     branches: [main]
+    paths:
+      - 'laser-tag-web/**'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
 
 jobs:
@@ -18,11 +21,14 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: laser-tag-web/package-lock.json
 
       - name: Install dependencies
+        working-directory: laser-tag-web
         run: npm ci
 
       - name: Build
+        working-directory: laser-tag-web
         run: npm run build
 
       - name: Generate version
@@ -34,8 +40,8 @@ jobs:
 
       - name: Create zip archive
         run: |
-          cd dist
-          zip -r ../web-grl-laser-tag-${{ steps.version.outputs.version }}.zip .
+          cd laser-tag-web/dist
+          zip -r ../../web-grl-laser-tag-${{ steps.version.outputs.version }}.zip .
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

@@ -234,6 +234,37 @@ export class CoordWarping {
   }
 
   /**
+   * Check if a point is inside the source quad (camera calibration area)
+   * Uses cross product method for convex polygon containment
+   * @param {number} x - X coordinate in camera space
+   * @param {number} y - Y coordinate in camera space
+   * @returns {boolean} - True if point is inside the quad
+   */
+  isInsideSourceQuad(x, y) {
+    const quad = this.srcQuad;
+
+    // Cross product sign check for each edge
+    // Point is inside if all cross products have same sign
+    const sign = (p1, p2, p3) => {
+      return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+    };
+
+    const point = { x, y };
+
+    // Check each edge of the quad (in order: TL->TR->BR->BL)
+    const d1 = sign(point, quad[0], quad[1]);
+    const d2 = sign(point, quad[1], quad[2]);
+    const d3 = sign(point, quad[2], quad[3]);
+    const d4 = sign(point, quad[3], quad[0]);
+
+    const hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0) || (d4 < 0);
+    const hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0) || (d4 > 0);
+
+    // Point is inside if all signs are the same (all positive or all negative)
+    return !(hasNeg && hasPos);
+  }
+
+  /**
    * Check if a point is near a calibration point
    * @param {number} x - X coordinate
    * @param {number} y - Y coordinate

@@ -10,6 +10,7 @@ export class Camera {
     this.height = 480;
     this.flipH = false;   // Flip horizontally
     this.flipV = false;   // Flip vertically
+    this.rotation = 0;    // Rotation in degrees (0, 90, 180, 270)
   }
 
   /**
@@ -147,22 +148,43 @@ export class Camera {
   getFrame(ctx) {
     if (!this.isReady) return null;
 
+    const isRotated90or270 = this.rotation === 90 || this.rotation === 270;
+    const outWidth = isRotated90or270 ? this.height : this.width;
+    const outHeight = isRotated90or270 ? this.width : this.height;
+
     ctx.save();
-    // Apply flips
-    if (this.flipH || this.flipV) {
-      ctx.translate(
-        this.flipH ? this.width : 0,
-        this.flipV ? this.height : 0
-      );
-      ctx.scale(
-        this.flipH ? -1 : 1,
-        this.flipV ? -1 : 1
-      );
+
+    // Apply rotation and flips
+    ctx.translate(outWidth / 2, outHeight / 2);
+
+    // Apply rotation
+    if (this.rotation !== 0) {
+      ctx.rotate(this.rotation * Math.PI / 180);
     }
+
+    // Apply flips
+    ctx.scale(
+      this.flipH ? -1 : 1,
+      this.flipV ? -1 : 1
+    );
+
+    ctx.translate(-this.width / 2, -this.height / 2);
     ctx.drawImage(this.video, 0, 0, this.width, this.height);
     ctx.restore();
 
-    return ctx.getImageData(0, 0, this.width, this.height);
+    return ctx.getImageData(0, 0, outWidth, outHeight);
+  }
+
+  /**
+   * Get output dimensions (accounting for rotation)
+   * @returns {{width: number, height: number}}
+   */
+  getOutputDimensions() {
+    const isRotated90or270 = this.rotation === 90 || this.rotation === 270;
+    return {
+      width: isRotated90or270 ? this.height : this.width,
+      height: isRotated90or270 ? this.width : this.height
+    };
   }
 
   /**
@@ -179,6 +201,17 @@ export class Camera {
    */
   setFlipV(enabled) {
     this.flipV = enabled;
+  }
+
+  /**
+   * Set rotation angle
+   * @param {number} degrees - Rotation in degrees (0, 90, 180, 270)
+   */
+  setRotation(degrees) {
+    // Normalize to 0, 90, 180, 270
+    this.rotation = ((degrees % 360) + 360) % 360;
+    // Snap to nearest 90 degrees
+    this.rotation = Math.round(this.rotation / 90) * 90;
   }
 
   /**

@@ -458,8 +458,12 @@ export class LaserTracker {
    */
   updateTrackingState(detectedPosition) {
     if (detectedPosition) {
+      // Check if this is a new stroke (laser was off for a while)
+      this.isNewStroke = this.framesSinceLastDetection > this.params.newStrokeThreshold;
+
       // Check for valid velocity (filter out noise jumps)
-      if (this.lastPosition && !detectedPosition.predicted) {
+      // BUT: Skip this check if it's a new stroke - allow jumping to new position
+      if (this.lastPosition && !detectedPosition.predicted && !this.isNewStroke) {
         const dx = detectedPosition.x - this.lastPosition.x;
         const dy = detectedPosition.y - this.lastPosition.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -481,9 +485,6 @@ export class LaserTracker {
 
         this.velocity = { x: dx, y: dy };
       }
-
-      // Check if this is a new stroke
-      this.isNewStroke = this.framesSinceLastDetection > this.params.newStrokeThreshold;
 
       // Apply Kalman filter for smooth tracking
       if (this.params.useKalman) {

@@ -61,6 +61,7 @@ export class SettingsManager {
       // Camera settings
       flipH: false,
       flipV: false,
+      rotation: 0,
 
       // Erase zone settings
       eraseZoneEnabled: false,

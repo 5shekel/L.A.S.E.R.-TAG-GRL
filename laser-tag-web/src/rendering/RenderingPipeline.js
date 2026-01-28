@@ -83,8 +83,10 @@ export class RenderingPipeline {
     this.renderMainCanvas();
 
     // Throttle secondary canvas rendering for performance
+    // But always render during calibration for responsive UI
     this.frameCount++;
-    if (this.frameCount % this.secondaryRenderInterval === 0) {
+    const isCalibrating = this.projectorCalibration.isCalibrating;
+    if (isCalibrating || this.frameCount % this.secondaryRenderInterval === 0) {
       this.renderCloneCanvas();
       this.renderPopupWindow();
     }
@@ -159,10 +161,15 @@ export class RenderingPipeline {
       this.cloneCanvas.style.transformOrigin = '0 0';
       this.cloneCanvas.style.transform = cssMatrix !== 'none' ? cssMatrix : 'none';
 
-      if (this.projectorCalibration.showCheckerboard) {
-        this.projectorCalibration.drawCheckerboardFullscreen(ctx, w, h);
-      }
       ctx.drawImage(srcCanvas, 0, 0, w, h);
+
+      // Draw checkerboard AFTER content so it's visible on top
+      // Use clipped version to constrain to calibration quad
+      if (this.projectorCalibration.showCheckerboard) {
+        const quad = this.projectorCalibration.getQuad();
+        const scaledPoints = quad.map(p => ({ x: p.x * w, y: p.y * h }));
+        this.projectorCalibration.drawCheckerboard(ctx, w, h, scaledPoints);
+      }
     } else {
       // No warping - reset transform and draw normally
       this.cloneCanvas.style.transform = 'none';
@@ -297,13 +304,13 @@ export class RenderingPipeline {
     popupCanvas.style.transformOrigin = '0 0';
     popupCanvas.style.transform = cssMatrix !== 'none' ? cssMatrix : 'none';
 
-    // Draw checkerboard on content canvas (gets warped with content)
+    // Draw content at full size (CSS will warp it)
+    popupCtx.drawImage(srcCanvas, 0, 0, w, h);
+
+    // Draw checkerboard AFTER content so it's visible on top
     if (this.projectorCalibration.showCheckerboard) {
       this.projectorCalibration.drawCheckerboardFullscreen(popupCtx, w, h);
     }
-
-    // Draw content at full size (CSS will warp it)
-    popupCtx.drawImage(srcCanvas, 0, 0, w, h);
   }
 
   /**

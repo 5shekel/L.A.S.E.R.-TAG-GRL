@@ -1323,19 +1323,10 @@ export class TweakpaneGui {
       container: container
     });
 
-    // Update button state - stop animation when window is open
-    const projectorBtn = document.getElementById('projector-btn');
-    if (projectorBtn) {
-      projectorBtn.classList.add('window-open');
-    }
-
-    // Listen for popup close to restore button animation
+    // Listen for popup close to clean up state
     const checkPopupClosed = setInterval(() => {
       if (!this.projectorWindow || this.projectorWindow.closed) {
         clearInterval(checkPopupClosed);
-        if (projectorBtn) {
-          projectorBtn.classList.remove('window-open');
-        }
         this.projectorWindow = null;
         this.adapter.setProjectorPopup(null);
         localStorage.removeItem(POPUP_OPEN_KEY);

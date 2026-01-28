@@ -367,6 +367,228 @@
       margin-top: 16px;
     }
 
+    /* About link on start screen */
+    .about-link {
+      margin-top: 24px;
+      color: #666;
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: underline;
+      transition: color 0.2s;
+    }
+
+    .about-link:hover {
+      color: #4ade80;
+    }
+
+    /* About page overlay */
+    .about-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(10, 10, 10, 0.98);
+      display: none;
+      z-index: 1001;
+      overflow-y: auto;
+    }
+
+    .about-overlay.visible {
+      display: block;
+    }
+
+    .about-content {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    .about-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .about-header .logo {
+      max-width: 300px;
+      width: 80%;
+      margin-bottom: 16px;
+      opacity: 0.9;
+    }
+
+    .about-header h1 {
+      font-size: 36px;
+      font-weight: 300;
+      letter-spacing: 6px;
+      margin-bottom: 8px;
+    }
+
+    .about-header .tagline {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .about-close {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #333;
+      border: 1px solid #444;
+      color: #ccc;
+      width: 40px;
+      height: 40px;
+      font-size: 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      z-index: 1002;
+    }
+
+    .about-close:hover {
+      background: #444;
+      color: #fff;
+    }
+
+    .about-section {
+      margin-bottom: 32px;
+    }
+
+    .about-section h2 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #4ade80;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #333;
+    }
+
+    .about-section p {
+      color: #aaa;
+      line-height: 1.7;
+      margin-bottom: 12px;
+    }
+
+    .about-section ul {
+      color: #aaa;
+      line-height: 1.7;
+      padding-left: 20px;
+    }
+
+    .about-section li {
+      margin-bottom: 8px;
+    }
+
+    .about-section a {
+      color: #4ade80;
+      text-decoration: none;
+    }
+
+    .about-section a:hover {
+      text-decoration: underline;
+    }
+
+    .about-section kbd {
+      background: #222;
+      border: 1px solid #444;
+      border-radius: 3px;
+      padding: 2px 6px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #ccc;
+    }
+
+    .license-box {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 12px;
+    }
+
+    .license-box h3 {
+      font-size: 12px;
+      color: #f87171;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .license-box ul {
+      color: #888;
+      font-size: 13px;
+    }
+
+    .credits-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .credits-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .credits-box {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .credits-box h3 {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .credits-box ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .credits-box li {
+      color: #ccc;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .github-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #333;
+      border: 1px solid #444;
+      color: #fff;
+      padding: 12px 24px;
+      font-size: 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+      margin-top: 8px;
+    }
+
+    .github-btn:hover {
+      background: #444;
+      text-decoration: none;
+    }
+
+    .github-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
     /* Calibration overlay */
     .calibration-overlay {
       position: absolute;
@@ -445,6 +667,127 @@
       <button id="start-button">START</button>
       <p id="loading-status"></p>
       <p id="error-message" class="error-message"></p>
+      <span id="about-link" class="about-link">About this project</span>
+    </div>
+  </div>
+
+  <!-- About page overlay -->
+  <div id="about-overlay" class="about-overlay">
+    <button id="about-close" class="about-close">&times;</button>
+    <div class="about-content">
+      <div class="about-header">
+        <img src="grl_banner.jpg" alt="Graffiti Research Lab" class="logo">
+        <h1>L.A.S.E.R. TAG</h1>
+        <p class="tagline">Browser-based laser graffiti system</p>
+      </div>
+
+      <div class="about-section">
+        <h2>What is L.A.S.E.R. TAG?</h2>
+        <p>L.A.S.E.R. TAG is an interactive digital graffiti system that tracks laser pointers using a webcam and renders brush strokes that can be projected back onto buildings and surfaces. Originally created by the Graffiti Research Lab in 2007, it became an iconic tool for public art and expression.</p>
+        <p>This browser edition is a modern JavaScript port of the original C++/OpenFrameworks application, bringing the technology to any device with a webcam and web browser. No installation required.</p>
+        <p>Point your laser at a surface, and the software tracks its position to create glowing graffiti strokes. Connect a projector to display your artwork on buildings, walls, or any surface in real-time.</p>
+      </div>
+
+      <div class="about-section">
+        <h2>Quick Start</h2>
+        <ul>
+          <li>Click <strong>START</strong> and allow camera access</li>
+          <li>Point a laser pointer at your camera to draw</li>
+          <li>Press <kbd>M</kbd> to test with mouse input (no laser needed)</li>
+          <li>Press <kbd>Space</kbd> to calibrate the tracking area</li>
+          <li>Press <kbd>P</kbd> to calibrate projector output</li>
+          <li>Click <strong>Projection Window</strong> to open a window for your projector</li>
+          <li>Press <kbd>C</kbd> to clear the canvas, <kbd>Ctrl+Z</kbd> to undo</li>
+          <li>Use keys <kbd>1</kbd>-<kbd>4</kbd> to switch brush modes</li>
+          <li>Use <kbd>↑</kbd>/<kbd>↓</kbd> arrows to adjust brush size</li>
+        </ul>
+      </div>
+
+      <div class="about-section">
+        <h2>Features</h2>
+        <ul>
+          <li>Advanced laser tracking with Kalman filter, optical flow, and CAMShift</li>
+          <li>Real-time HSV color detection using OpenCV.js</li>
+          <li>6 brush modes with customizable colors and drip effects</li>
+          <li>WebGL bloom/glow post-processing</li>
+          <li>Perspective calibration for projection mapping</li>
+          <li>Dual-display support with projector popup window</li>
+          <li>Works fully offline - all dependencies bundled locally</li>
+        </ul>
+      </div>
+
+      <div class="about-section">
+        <h2>License</h2>
+        <p>L.A.S.E.R. TAG is provided free of charge for <strong>non-commercial use only</strong>. This software was created as a tool for public expression and artistic exploration, not as a vehicle for corporate messaging.</p>
+        <div class="license-box">
+          <h3>Permitted Uses</h3>
+          <ul>
+            <li>Personal artistic expression</li>
+            <li>Non-commercial public art projects</li>
+            <li>Educational purposes</li>
+            <li>Community events (no fees charged)</li>
+            <li>Open-source development</li>
+          </ul>
+        </div>
+        <div class="license-box" style="margin-top: 12px;">
+          <h3>Not Permitted</h3>
+          <ul>
+            <li>Marketing, advertising, or promotional purposes</li>
+            <li>Brand promotion or corporate messaging</li>
+            <li>Paid services or commercial events</li>
+            <li>Use by advertising or marketing agencies</li>
+          </ul>
+        </div>
+        <p style="margin-top: 16px; font-size: 13px; color: #888;">Any public use or derived works should credit: <em>"Based on L.A.S.E.R. TAG by Graffiti Research Lab"</em></p>
+      </div>
+
+      <div class="about-section">
+        <h2>Credits & Attribution</h2>
+        <div class="credits-grid">
+          <div class="credits-box">
+            <h3>Original L.A.S.E.R. TAG (2007)</h3>
+            <ul>
+              <li><strong>Evan Roth</strong> - Concept & Direction</li>
+              <li><strong>James Powderly</strong> - Concept & Direction</li>
+              <li><strong>Theodore Watson</strong> - Software Development</li>
+              <li><strong>Zachary Lieberman</strong> - Software Development</li>
+            </ul>
+          </div>
+          <div class="credits-box">
+            <h3>Browser Edition (2026)</h3>
+            <ul>
+              <li><strong>Leon Fedotov</strong> - JavaScript Port</li>
+              <li><strong>Claude (Anthropic)</strong> - AI Pair Programming</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="about-section">
+        <h2>Technologies</h2>
+        <ul>
+          <li><strong>OpenCV.js</strong> - Computer vision for laser tracking</li>
+          <li><strong>WebGL</strong> - Post-processing bloom effects</li>
+          <li><strong>WebRTC</strong> - Camera access</li>
+          <li><strong>Vite</strong> - Build tooling</li>
+          <li><strong>Tweakpane</strong> - UI controls</li>
+        </ul>
+      </div>
+
+      <div class="about-section">
+        <h2>Links</h2>
+        <p>
+          <a href="https://github.com/LeonFedotov/L.A.S.E.R.-TAG-GRL" target="_blank" rel="noopener noreferrer" class="github-btn">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+            View on GitHub
+          </a>
+        </p>
+        <p style="margin-top: 16px;">
+          <a href="http://graffitiresearchlab.com/blog/projects/laser-tag/" target="_blank" rel="noopener noreferrer">Original L.A.S.E.R. TAG Project</a> &bull;
+          <a href="http://graffitiresearchlab.com/" target="_blank" rel="noopener noreferrer">Graffiti Research Lab</a> &bull;
+          <a href="https://openframeworks.cc/" target="_blank" rel="noopener noreferrer">OpenFrameworks</a>
+        </p>
+      </div>
     </div>
   </div>
 
@@ -697,6 +1040,37 @@
       observer.observe(overlay, { attributes: true, attributeFilter: ['class'] });
 
       init();
+    })();
+  </script>
+
+  <!-- About page toggle -->
+  <script>
+    (function() {
+      const aboutLink = document.getElementById('about-link');
+      const aboutOverlay = document.getElementById('about-overlay');
+      const aboutClose = document.getElementById('about-close');
+
+      aboutLink.addEventListener('click', () => {
+        aboutOverlay.classList.add('visible');
+      });
+
+      aboutClose.addEventListener('click', () => {
+        aboutOverlay.classList.remove('visible');
+      });
+
+      // Close on Escape key
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && aboutOverlay.classList.contains('visible')) {
+          aboutOverlay.classList.remove('visible');
+        }
+      });
+
+      // Close when clicking outside content
+      aboutOverlay.addEventListener('click', (e) => {
+        if (e.target === aboutOverlay) {
+          aboutOverlay.classList.remove('visible');
+        }
+      });
     })();
   </script>
 

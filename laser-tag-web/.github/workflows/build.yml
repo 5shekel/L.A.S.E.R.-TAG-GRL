@@ -1,0 +1,50 @@
+name: Build Standalone
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Generate version
+        id: version
+        run: |
+          VERSION="v$(date +'%Y.%m.%d')-${{ github.run_number }}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Generated version: $VERSION"
+
+      - name: Create zip archive
+        run: |
+          cd dist
+          zip -r ../laser-tag-${{ steps.version.outputs.version }}.zip .
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: L.A.S.E.R. TAG ${{ steps.version.outputs.version }}
+          body: |
+            Standalone build from commit ${{ github.sha }}
+
+            Download and extract the zip, then open `index.html` in a browser.
+          files: laser-tag-${{ steps.version.outputs.version }}.zip
+          make_latest: true

@@ -15,7 +15,7 @@
     "gl-matrix": "^3.4.3",
     "kalman-filter": "^2.3.0",
     "lil-gui": "^0.19.2",
-    "opencv.js": "^1.2.1",
+    "@techstark/opencv-js": "^4.10.0-release.1",
     "tweakpane": "^4.0.5"
   },
   "devDependencies": {

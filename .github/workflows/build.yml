@@ -35,7 +35,7 @@ jobs:
       - name: Create zip archive
         run: |
           cd dist
-          zip -r ../laser-tag-${{ steps.version.outputs.version }}.zip .
+          zip -r ../web-grl-laser-tag-${{ steps.version.outputs.version }}.zip .
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -46,5 +46,5 @@ jobs:
             Standalone build from commit ${{ github.sha }}
 
             Download and extract the zip, then open `index.html` in a browser.
-          files: laser-tag-${{ steps.version.outputs.version }}.zip
+          files: web-grl-laser-tag-${{ steps.version.outputs.version }}.zip
           make_latest: true

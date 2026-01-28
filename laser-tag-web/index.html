@@ -747,16 +747,16 @@
           <div class="credits-box">
             <h3>Original L.A.S.E.R. TAG (2007)</h3>
             <ul>
-              <li><strong>Evan Roth</strong> - Concept & Direction</li>
-              <li><strong>James Powderly</strong> - Concept & Direction</li>
-              <li><strong>Theodore Watson</strong> - Software Development</li>
-              <li><strong>Zachary Lieberman</strong> - Software Development</li>
+              <li><strong><a href="https://www.evan-roth.com/" target="_blank" rel="noopener noreferrer">Evan Roth</a></strong> - Concept & Direction</li>
+              <li><strong><a href="https://www.instagram.com/jamespowderly" target="_blank" rel="noopener noreferrer">James Powderly</a></strong> - Concept & Direction</li>
+              <li><strong><a href="https://theowatson.com/" target="_blank" rel="noopener noreferrer">Theodore Watson</a></strong> - Software Development</li>
+              <li><strong><a href="http://zach.li" target="_blank" rel="noopener noreferrer">Zachary Lieberman</a></strong> - Software Development</li>
             </ul>
           </div>
           <div class="credits-box">
             <h3>Browser Edition (2026)</h3>
             <ul>
-              <li><strong>Leon Fedotov</strong> - JavaScript Port</li>
+              <li><strong><a href="https://github.com/LeonFedotov" target="_blank" rel="noopener noreferrer">Leon Fedotov</a></strong> - JavaScript Port</li>
               <li><strong>Claude (Anthropic)</strong> - AI Pair Programming</li>
             </ul>
           </div>
@@ -891,7 +891,8 @@
         <span id="status-mouse">Mouse: <span>OFF</span></span>
         <span id="status-fps">FPS: <span>0</span></span>
         <span id="status-position">Position: <span>--</span></span>
-        <span id="status-brush">Brush: <span>Vector</span></span>
+        <span id="status-mode">Mode: <span>brush</span></span>
+        <span id="about-link-main" class="about-link">About</span>
       </div>
     </div>
 
@@ -1047,10 +1048,15 @@
   <script>
     (function() {
       const aboutLink = document.getElementById('about-link');
+      const aboutLinkMain = document.getElementById('about-link-main');
       const aboutOverlay = document.getElementById('about-overlay');
       const aboutClose = document.getElementById('about-close');
 
       aboutLink.addEventListener('click', () => {
+        aboutOverlay.classList.add('visible');
+      });
+
+      aboutLinkMain.addEventListener('click', () => {
         aboutOverlay.classList.add('visible');
       });
 

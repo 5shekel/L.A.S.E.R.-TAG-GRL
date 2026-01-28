@@ -20,24 +20,6 @@ vi.mock('./VectorBrush.js', () => ({
   }))
 }));
 
-vi.mock('./PngBrush.js', () => ({
-  PngBrush: vi.fn().mockImplementation(() => ({
-    name: 'PNG Stamp',
-    params: { brushWidth: 15 },
-    init: vi.fn(),
-    setColor: vi.fn(),
-    setBrushWidth: vi.fn(),
-    addPoint: vi.fn(),
-    endStroke: vi.fn(),
-    render: vi.fn(),
-    draw: vi.fn(),
-    clear: vi.fn(),
-    undo: vi.fn(),
-    dispose: vi.fn(),
-    isDrawing: false
-  }))
-}));
-
 describe('BrushManager', () => {
   let brushManager;
 
@@ -48,27 +30,27 @@ describe('BrushManager', () => {
   });
 
   describe('init', () => {
-    it('creates brushes on initialization', () => {
-      expect(brushManager.brushes.length).toBe(2);
+    it('creates brush on initialization', () => {
+      expect(brushManager.brushes.length).toBe(1);
     });
 
-    it('initializes brushes with canvas dimensions', () => {
+    it('initializes brush with canvas dimensions', () => {
       const brush = brushManager.brushes[0];
       expect(brush.init).toHaveBeenCalledWith(800, 600);
     });
   });
 
   describe('getActiveBrush', () => {
-    it('returns the first brush by default', () => {
+    it('returns the brush', () => {
       const brush = brushManager.getActiveBrush();
       expect(brush.name).toBe('Vector');
     });
   });
 
   describe('setActiveBrush', () => {
-    it('changes the active brush index', () => {
-      brushManager.setActiveBrush(1);
-      expect(brushManager.activeBrushIndex).toBe(1);
+    it('keeps brush index at 0 for valid index', () => {
+      brushManager.setActiveBrush(0);
+      expect(brushManager.activeBrushIndex).toBe(0);
     });
 
     it('ignores invalid indices', () => {
@@ -79,12 +61,12 @@ describe('BrushManager', () => {
       expect(brushManager.activeBrushIndex).toBe(0);
     });
 
-    it('notifies state change when brush changes', () => {
+    it('notifies state change when mode set', () => {
       const callback = vi.fn();
       brushManager.onStateChange = callback;
 
-      brushManager.setActiveBrush(1);
-      expect(callback).toHaveBeenCalledWith('brush', 'PNG Stamp');
+      brushManager.setActiveBrush(0);
+      expect(callback).toHaveBeenCalledWith('mode', 'smooth');
     });
   });
 
@@ -92,22 +74,13 @@ describe('BrushManager', () => {
     it('returns list of brushes with metadata', () => {
       const list = brushManager.getBrushList();
 
-      expect(list).toHaveLength(2);
+      expect(list).toHaveLength(1);
       expect(list[0]).toEqual({ index: 0, name: 'Vector', active: true });
-      expect(list[1]).toEqual({ index: 1, name: 'PNG Stamp', active: false });
-    });
-
-    it('reflects active brush state', () => {
-      brushManager.setActiveBrush(1);
-      const list = brushManager.getBrushList();
-
-      expect(list[0].active).toBe(false);
-      expect(list[1].active).toBe(true);
     });
   });
 
   describe('setColor', () => {
-    it('parses hex color and sets on all brushes', () => {
+    it('parses hex color and sets on brush', () => {
       brushManager.setColor('#FF0000');
 
       for (const brush of brushManager.brushes) {
@@ -125,7 +98,7 @@ describe('BrushManager', () => {
   });
 
   describe('setWidth', () => {
-    it('sets width on all brushes', () => {
+    it('sets width on brush', () => {
       brushManager.setWidth(20);
 
       for (const brush of brushManager.brushes) {
@@ -144,7 +117,7 @@ describe('BrushManager', () => {
   });
 
   describe('clearAll', () => {
-    it('clears all brushes', () => {
+    it('clears brush', () => {
       brushManager.clearAll();
 
       for (const brush of brushManager.brushes) {
@@ -154,16 +127,15 @@ describe('BrushManager', () => {
   });
 
   describe('undo', () => {
-    it('undoes on active brush only', () => {
+    it('undoes on active brush', () => {
       brushManager.undo();
 
       expect(brushManager.brushes[0].undo).toHaveBeenCalled();
-      expect(brushManager.brushes[1].undo).not.toHaveBeenCalled();
     });
   });
 
   describe('render', () => {
-    it('renders all brushes', () => {
+    it('renders brush', () => {
       brushManager.render();
 
       for (const brush of brushManager.brushes) {
@@ -173,7 +145,7 @@ describe('BrushManager', () => {
   });
 
   describe('dispose', () => {
-    it('disposes all brushes and clears array', () => {
+    it('disposes brush and clears array', () => {
       brushManager.dispose();
 
       expect(brushManager.brushes).toHaveLength(0);

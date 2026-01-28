@@ -79,7 +79,7 @@ async function initApp() {
 
     // Sync initial status bar state (settings loaded before callback was set)
     handleStateChange('mouseInput', app.useMouseInput);
-    handleStateChange('brush', app.getActiveBrush().name);
+    handleStateChange('mode', app.getMode());
 
     // Hide loading overlay
     loadingOverlay.classList.add('hidden');
@@ -273,9 +273,11 @@ function handleKeyDown(e) {
     case '2':
     case '3':
     case '4':
-      // Switch brush
-      const brushIndex = parseInt(e.key) - 1;
-      app.setActiveBrush(brushIndex);
+    case '5':
+    case '6':
+      // Switch mode
+      const modeIndex = parseInt(e.key) - 1;
+      app.setModeByIndex(modeIndex);
       break;
 
     case 'arrowup':
@@ -317,10 +319,10 @@ function handleStateChange(key, value) {
       }
       break;
 
-    case 'brush':
-      const brushEl = document.querySelector('#status-brush span');
-      if (brushEl) {
-        brushEl.textContent = value;
+    case 'mode':
+      const modeEl = document.querySelector('#status-mode span');
+      if (modeEl) {
+        modeEl.textContent = value;
       }
       break;
 

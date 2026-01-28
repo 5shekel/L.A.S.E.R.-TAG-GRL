@@ -3,13 +3,14 @@
  * Extracted from AppController to separate brush concerns
  */
 import { VectorBrush } from './VectorBrush.js';
-import { PngBrush } from './PngBrush.js';
+import { getAvailableModes } from './modes/index.js';
 
 export class BrushManager {
   constructor() {
     this.brushes = [];
     this.activeBrushIndex = 0;
     this.onStateChange = null;
+    this.modes = getAvailableModes();
   }
 
   /**
@@ -18,17 +19,12 @@ export class BrushManager {
    * @param {number} height - Canvas height
    */
   init(width, height) {
-    // Vector brush
+    // Vector brush (only mode for now)
     const vectorBrush = new VectorBrush();
     vectorBrush.init(width, height);
     this.brushes.push(vectorBrush);
 
-    // PNG stamp brush
-    const pngBrush = new PngBrush();
-    pngBrush.init(width, height);
-    this.brushes.push(pngBrush);
-
-    console.log(`Initialized ${this.brushes.length} brushes`);
+    console.log(`Initialized ${this.brushes.length} brush(es)`);
   }
 
   /**
@@ -51,14 +47,52 @@ export class BrushManager {
   }
 
   /**
-   * Set active brush by index
+   * Set active brush by index (deprecated - use setMode instead)
    * @param {number} index - Brush index
    */
   setActiveBrush(index) {
-    if (index >= 0 && index < this.brushes.length) {
-      this.activeBrushIndex = index;
-      this.notifyStateChange('brush', this.getActiveBrush().name);
+    // Now switches modes instead of brushes
+    this.setModeByIndex(index);
+  }
+
+  /**
+   * Set brush mode by index (1-based for keyboard shortcuts)
+   * @param {number} index - Mode index (0-based)
+   */
+  setModeByIndex(index) {
+    if (index >= 0 && index < this.modes.length) {
+      const modeName = this.modes[index];
+      this.setMode(modeName);
     }
+  }
+
+  /**
+   * Set brush mode by name
+   * @param {string} modeName - Mode name (smooth, glow, basic, dope, arrow, arrowFat)
+   */
+  setMode(modeName) {
+    const brush = this.getActiveBrush();
+    if (brush && this.modes.includes(modeName)) {
+      brush.params.mode = modeName;
+      this.notifyStateChange('mode', modeName);
+    }
+  }
+
+  /**
+   * Get current mode name
+   * @returns {string}
+   */
+  getMode() {
+    const brush = this.getActiveBrush();
+    return brush ? brush.params.mode : 'smooth';
+  }
+
+  /**
+   * Get list of available modes
+   * @returns {string[]}
+   */
+  getModeList() {
+    return this.modes;
   }
 
   /**

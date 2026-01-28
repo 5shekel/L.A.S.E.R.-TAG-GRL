@@ -46,7 +46,7 @@ Open http://localhost:3000 and click START. Press `M` to use mouse input for tes
 | `D` | Toggle camera debug view |
 | `M` | Toggle mouse input (for testing) |
 | `E` | Toggle erase zone mode |
-| `1-4` | Switch brush type |
+| `1-6` | Switch mode (smooth, glow, basic, dope, arrow, arrowFat) |
 | `Arrow Up/Down` | Adjust brush size |
 
 ## Brush Modes
@@ -183,7 +183,6 @@ src/
 │   ├── BrushManager.js        # Brush lifecycle and compositing
 │   ├── VectorBrush.js         # Main brush with drips and baking
 │   ├── DripManager.js         # Physics-based drip simulation
-│   ├── PngBrush.js            # Stamp brush with PNG patterns
 │   └── modes/                 # Strategy pattern for brush rendering
 │       ├── SmoothModeStrategy.js
 │       ├── GlowModeStrategy.js
@@ -204,7 +203,7 @@ npm run preview    # Preview production build
 
 ## Deployment
 
-GitHub Pages deployment is configured via `.github/workflows/deploy.yml`. Push to `master` or `main` to auto-deploy.
+GitHub Pages deployment is configured via `.github/workflows/deploy.yml`. Push to `main` to auto-deploy.
 
 Manual deployment:
 ```bash
@@ -226,14 +225,15 @@ GITHUB_PAGES=true npm run build
 
 ## Credits
 
-**Original L.A.S.E.R. TAG by Graffiti Research Lab:**
-- **Evan Roth & James Powderly** - Concept and direction
-- **Theodore Watson** - PNG brush, vector brush implementation
-- **Zachary Lieberman** - Graff letter brush, gesture machine
+**Original L.A.S.E.R. TAG by Graffiti Research Lab (2007):**
+- **[Evan Roth](https://www.evan-roth.com/)** - Concept & Direction
+- **[James Powderly](https://www.instagram.com/jamespowderly)** - Concept & Direction
+- **[Theodore Watson](https://theowatson.com/)** - Software Development
+- **[Zachary Lieberman](http://zach.li)** - Software Development
 
-**Browser port:**
-- **Leon Fedotov** - JavaScript modernization and new features
-- **Claude (Anthropic)** - AI pair programming assistant
+**Browser Edition (2026):**
+- **[Leon Fedotov](https://github.com/LeonFedotov)** - JavaScript Port
+- **Claude (Anthropic)** - AI Pair Programming
 
 ## License
 

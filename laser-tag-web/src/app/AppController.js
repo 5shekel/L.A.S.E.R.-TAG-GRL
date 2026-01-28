@@ -681,6 +681,46 @@ export class AppController {
   }
 
   /**
+   * Get the active brush
+   * @returns {BaseBrush}
+   */
+  getActiveBrush() {
+    return this.brushManager.getActiveBrush();
+  }
+
+  /**
+   * Set active brush/mode by index
+   * @param {number} index - Mode index (0-based)
+   */
+  setActiveBrush(index) {
+    this.brushManager.setActiveBrush(index);
+  }
+
+  /**
+   * Set mode by index
+   * @param {number} index - Mode index (0-based)
+   */
+  setModeByIndex(index) {
+    this.brushManager.setModeByIndex(index);
+  }
+
+  /**
+   * Set mode by name
+   * @param {string} modeName - Mode name
+   */
+  setMode(modeName) {
+    this.brushManager.setMode(modeName);
+  }
+
+  /**
+   * Get current mode name
+   * @returns {string}
+   */
+  getMode() {
+    return this.brushManager.getMode();
+  }
+
+  /**
    * Get tracker parameters
    * @returns {Object}
    */

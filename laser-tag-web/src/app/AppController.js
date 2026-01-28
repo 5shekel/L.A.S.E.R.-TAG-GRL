@@ -153,6 +153,15 @@ export class AppController {
       settings: this.settings
     });
 
+    // Set up clone canvas if available (mirrors popup in main window)
+    if (elements.projectorCloneCanvas) {
+      // Set clone canvas size to match projector canvas
+      elements.projectorCloneCanvas.width = this.projectorCanvas.width;
+      elements.projectorCloneCanvas.height = this.projectorCanvas.height;
+      this.renderingPipeline.setCloneCanvas(elements.projectorCloneCanvas);
+      this.projectorCloneCanvas = elements.projectorCloneCanvas;
+    }
+
     console.log('AppController initialized');
     return true;
   }
@@ -242,6 +251,18 @@ export class AppController {
 
     // Update rendering pipeline (handles post-processor resize)
     this.renderingPipeline.resize(rect.width, rect.height);
+
+    // Resize clone canvas to match projector canvas
+    if (this.projectorCloneCanvas) {
+      const cloneContainer = this.projectorCloneCanvas.parentElement;
+      if (cloneContainer) {
+        const cloneRect = cloneContainer.getBoundingClientRect();
+        if (cloneRect.width > 0 && cloneRect.height > 0) {
+          this.projectorCloneCanvas.width = cloneRect.width;
+          this.projectorCloneCanvas.height = cloneRect.height;
+        }
+      }
+    }
   }
 
   /**

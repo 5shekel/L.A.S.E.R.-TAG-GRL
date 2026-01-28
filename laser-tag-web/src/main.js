@@ -54,6 +54,7 @@ async function initApp() {
     // Get DOM elements
     const elements = {
       projectorCanvas: document.getElementById('projector-canvas'),
+      projectorCloneCanvas: document.getElementById('projector-clone-canvas'),
       debugCanvas: document.getElementById('debug-canvas'),
       videoElement: document.getElementById('video-element')
     };

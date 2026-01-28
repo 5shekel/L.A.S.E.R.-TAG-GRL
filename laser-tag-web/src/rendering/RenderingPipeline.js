@@ -14,6 +14,10 @@ export class RenderingPipeline {
     this.projectorCanvas = null;
     this.projectorCtx = null;
 
+    // Clone canvas (mirrors popup in main window)
+    this.cloneCanvas = null;
+    this.cloneCtx = null;
+
     // Dependencies (set via configure)
     this.brushManager = null;
     this.postProcessor = null;
@@ -44,6 +48,15 @@ export class RenderingPipeline {
   }
 
   /**
+   * Set clone canvas reference (mirrors popup in main window)
+   * @param {HTMLCanvasElement} canvas
+   */
+  setCloneCanvas(canvas) {
+    this.cloneCanvas = canvas;
+    this.cloneCtx = canvas ? canvas.getContext('2d') : null;
+  }
+
+  /**
    * Set projector popup window reference
    * @param {Object|null} popup - {window, canvas, ctx}
    */
@@ -64,6 +77,7 @@ export class RenderingPipeline {
    */
   render() {
     this.renderMainCanvas();
+    this.renderCloneCanvas();
     this.renderPopupWindow();
   }
 
@@ -100,6 +114,57 @@ export class RenderingPipeline {
   drawProjectorCalibrationOverlay() {
     if (this.projectorCalibration.isCalibrating) {
       this.projectorCalibration.draw(this.projectorCtx);
+    }
+  }
+
+  /**
+   * Render to clone canvas (mirrors popup in main window)
+   * Shows the warped projection output with calibration overlay
+   */
+  renderCloneCanvas() {
+    if (!this.cloneCanvas || !this.cloneCtx) {
+      return;
+    }
+
+    const ctx = this.cloneCtx;
+    const srcCanvas = this.projectorCanvas;
+    const w = this.cloneCanvas.width;
+    const h = this.cloneCanvas.height;
+
+    // Clear the clone canvas
+    ctx.fillStyle = this.settings.backgroundColor;
+    ctx.fillRect(0, 0, w, h);
+
+    const isWarped = this.projectorCalibration.isWarped();
+    const isCalibrating = this.projectorCalibration.isCalibrating;
+
+    if (isWarped && !isCalibrating) {
+      // Apply CSS transform for warping
+      const cssMatrix = this.projectorCalibration.getCssTransform(w, h);
+      this.cloneCanvas.style.transformOrigin = '0 0';
+      this.cloneCanvas.style.transform = cssMatrix;
+      ctx.drawImage(srcCanvas, 0, 0, w, h);
+    } else if (isCalibrating) {
+      // During calibration, show warped preview with checkerboard
+      const cssMatrix = this.projectorCalibration.getCssTransform(w, h, true);
+      this.cloneCanvas.style.transformOrigin = '0 0';
+      this.cloneCanvas.style.transform = cssMatrix !== 'none' ? cssMatrix : 'none';
+
+      if (this.projectorCalibration.showCheckerboard) {
+        this.projectorCalibration.drawCheckerboardFullscreen(ctx, w, h);
+      }
+      ctx.drawImage(srcCanvas, 0, 0, w, h);
+    } else {
+      // No warping - reset transform and draw normally
+      this.cloneCanvas.style.transform = 'none';
+      ctx.drawImage(srcCanvas, 0, 0, w, h);
+    }
+
+    // Draw calibration overlay (frame and handles) when calibrating
+    // Note: This will be visually transformed by CSS along with the content,
+    // showing how the calibration frame appears on the actual projection
+    if (isCalibrating) {
+      this.projectorCalibration.draw(ctx, w, h, true); // skipCheckerboard=true (already drawn above)
     }
   }
 

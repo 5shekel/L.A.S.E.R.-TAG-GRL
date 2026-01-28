@@ -115,6 +115,37 @@
       color: #fff;
     }
 
+    /* Projector button with pulsing glow animation */
+    #projector-btn {
+      background: #2a5a3a;
+      border-color: #3a7a4a;
+      animation: projector-btn-glow 1.5s ease-in-out infinite;
+      position: relative;
+    }
+
+    #projector-btn:hover {
+      animation: none;
+      background: #3a7a4a;
+      box-shadow: 0 0 12px rgba(80, 200, 120, 0.6);
+    }
+
+    #projector-btn.window-open {
+      animation: none;
+      background: #3a7a4a;
+      box-shadow: 0 0 8px rgba(80, 200, 120, 0.4);
+    }
+
+    @keyframes projector-btn-glow {
+      0%, 100% {
+        box-shadow: 0 0 4px rgba(80, 200, 120, 0.3);
+        background: #2a5a3a;
+      }
+      50% {
+        box-shadow: 0 0 12px rgba(80, 200, 120, 0.6), 0 0 20px rgba(80, 200, 120, 0.3);
+        background: #3a7a4a;
+      }
+    }
+
     .panel-content {
       flex: 1;
       display: flex;
@@ -137,16 +168,39 @@
       object-fit: contain;
     }
 
-    /* Preview panel - fills right column */
-    .preview-panel {
+    /* Preview panels container - split view */
+    .preview-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
       flex: 1;
-      width: 100%;
+      min-height: 0;
     }
 
-    #projector-canvas {
+    .preview-panel {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .preview-panel .panel-content {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #projector-canvas,
+    #projector-clone-canvas {
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
+    }
+
+    #projector-clone-canvas {
+      background: #000;
     }
 
     /* Instructions panel */
@@ -430,57 +484,71 @@
           <div class="instructions-panel">
             <h3>Keyboard Shortcuts</h3>
             <div class="shortcut-grid">
-              <div class="shortcut"><kbd>Space</kbd><span>Calibration</span></div>
-              <div class="shortcut"><kbd>P</kbd><span>Proj calibration</span></div>
+              <div class="shortcut"><kbd>Space</kbd><span>Camera calib</span></div>
+              <div class="shortcut"><kbd>P</kbd><span>Projector calib</span></div>
               <div class="shortcut"><kbd>C</kbd><span>Clear canvas</span></div>
               <div class="shortcut"><kbd>M</kbd><span>Mouse input</span></div>
               <div class="shortcut"><kbd>D</kbd><span>Debug view</span></div>
-              <div class="shortcut"><kbd>F</kbd><span>Fullscreen</span></div>
               <div class="shortcut"><kbd>E</kbd><span>Erase zone</span></div>
               <div class="shortcut"><kbd>1-4</kbd><span>Switch brush</span></div>
               <div class="shortcut"><kbd>↑↓</kbd><span>Brush size</span></div>
-              <div class="shortcut"><kbd>Ctrl+S</kbd><span>Save calib</span></div>
               <div class="shortcut"><kbd>Ctrl+Z</kbd><span>Undo</span></div>
             </div>
 
             <h4>Getting Started</h4>
             <p>Point a laser pointer at your camera. The tracker detects the bright spot and draws on the canvas. Use the sidebar to adjust color detection thresholds.</p>
 
-            <h4>Calibration</h4>
-            <p>Press <kbd>Space</kbd> to enter calibration mode. Drag the corner handles to match your projection surface. Press <kbd>Ctrl+S</kbd> to save. This maps camera coordinates to projector output.</p>
-
-            <h4>Testing Without Laser</h4>
-            <p>Press <kbd>M</kbd> to enable mouse input. Click and drag on the preview canvas to draw. Mouse and laser tracking can work together.</p>
+            <h4>Camera Calibration</h4>
+            <p>Press <kbd>Space</kbd> to enter camera calibration mode. Drag the corner handles to define the tracking area. Calibration autosaves as you adjust. Only detections inside this area are tracked.</p>
 
             <h4>Projection Setup</h4>
-            <p>Press <kbd>P</kbd> to enter projector calibration mode. Use the "Open Projector" button in the sidebar to open a fullscreen output window. Move it to your secondary display and press <kbd>F</kbd> for fullscreen.</p>
+            <p>The "Projection Output" panel shows what will be displayed. Click the "Projection Window" button to open a separate window for your projector. Move it to your secondary display and use your OS fullscreen.</p>
+
+            <h4>Projector Calibration</h4>
+            <p>Press <kbd>P</kbd> to enter projector calibration mode. Drag corner handles to warp the output to match your projection surface. Enable the checkerboard pattern for alignment. Changes autosave.</p>
+
+            <h4>Camera Settings</h4>
+            <p>Adjust camera rotation (0°, 90°, 180°, 270°) and flip (horizontal/vertical) in the Camera Settings folder to match your physical setup.</p>
+
+            <h4>Testing Without Laser</h4>
+            <p>Press <kbd>M</kbd> to enable mouse input. Click and drag on the Control canvas to draw. Mouse and laser tracking can work together.</p>
 
             <h4>Detection Tips</h4>
-            <p>Use laser presets for bright laser pointers (Val Min 200+). Use object presets for colored objects like balls or markers (Val Min 80). Adjust HSV ranges in the sidebar if needed.</p>
+            <p>Use laser presets for bright laser pointers (Val Min 200+). Use object presets for colored objects (Val Min 80). Adjust HSV ranges in the sidebar as needed.</p>
 
             <h4>Advanced Tracking</h4>
-            <p>Enable Kalman Filter for smoother tracking. Optical Flow predicts motion during brief dropouts. CAMShift adapts to changing lighting conditions. Toggle these in the Laser Detection panel.</p>
+            <p>Enable Kalman Filter for smoother tracking. Optical Flow predicts motion during brief dropouts. CAMShift adapts to changing lighting.</p>
 
             <h4>Settings & Presets</h4>
-            <p>All settings autosave automatically. Refresh the page and your settings will be restored. Use the Settings panel to save named presets, load them later, or reset to defaults. Great for different venues or laser colors.</p>
+            <p>All settings autosave automatically. Use the Settings panel to save named presets or reset to defaults.</p>
 
             <h4>Brush Modes</h4>
-            <p>Smooth: variable-width anti-aliased lines. Glow: luminous soft strokes. Basic: 45° diagonal ribbon (original C++). Dope: perpendicular ribbon following stroke. Arrow/Fat: ribbon with arrow head (Fat has colored shadow). Adjust width with <kbd>↑↓</kbd> keys.</p>
+            <p>Smooth: variable-width lines. Glow: luminous strokes. Basic: 45° ribbon. Dope: perpendicular ribbon. Arrow/Fat: ribbon with arrow head. Adjust width with <kbd>↑↓</kbd>.</p>
 
             <h4>Erase Zone</h4>
-            <p>Enable the erase zone to create a "shake to clear" area. Point your laser at this zone to clear the canvas. Useful for live performances.</p>
+            <p>Enable erase zone to create a "shake to clear" area. Point your laser there to clear the canvas.</p>
           </div>
         </div>
 
-        <!-- Right column: Preview -->
+        <!-- Right column: Split Preview -->
         <div class="right-column">
-          <div class="panel preview-panel">
-            <div class="panel-header">
-              <span>Output Preview</span>
-              <button id="projector-btn">Open Projector</button>
+          <div class="preview-container">
+            <!-- Projector clone - mirrors popup output -->
+            <div class="panel preview-panel">
+              <div class="panel-header">
+                <span>Projection Output</span>
+                <button id="projector-btn">Projection Window</button>
+              </div>
+              <div class="panel-content">
+                <canvas id="projector-clone-canvas"></canvas>
+              </div>
             </div>
-            <div class="panel-content">
-              <canvas id="projector-canvas"></canvas>
+            <!-- Control canvas - interactive preview -->
+            <div class="panel preview-panel">
+              <div class="panel-header">Control</div>
+              <div class="panel-content">
+                <canvas id="projector-canvas"></canvas>
+              </div>
             </div>
           </div>
         </div>

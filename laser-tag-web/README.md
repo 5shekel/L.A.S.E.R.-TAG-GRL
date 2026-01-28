@@ -21,7 +21,7 @@ L.A.S.E.R. TAG allows you to create digital graffiti using a laser pointer track
 - **Settings persistence** - autosave on change + named presets
 - **Perspective calibration** for projection mapping
 - **Floating Tweakpane UI** - minimal, collapsible panels
-- **Projector popup window** for dual-display setups
+- **Dual-display support** - split preview with projector popup window
 - **Combined input modes** - mouse and tracking can work together
 - **Stroke baking system** - completed strokes become immutable background
 - **Works offline** - all dependencies bundled locally
@@ -41,13 +41,11 @@ Open http://localhost:3000 and click START. Press `M` to use mouse input for tes
 |-----|--------|
 | `C` | Clear canvas |
 | `Ctrl+Z` | Undo last stroke |
-| `Space` | Toggle calibration mode |
-| `Ctrl+S` | Save calibration |
-| `F` | Toggle fullscreen |
-| `D` | Toggle camera view |
+| `Space` | Toggle camera calibration mode |
+| `P` | Toggle projector calibration mode |
+| `D` | Toggle camera debug view |
 | `M` | Toggle mouse input (for testing) |
-| `E` | Erase zone mode |
-| `P` | Open projector popup |
+| `E` | Toggle erase zone mode |
 | `1-4` | Switch brush type |
 | `Arrow Up/Down` | Adjust brush size |
 
@@ -130,32 +128,71 @@ Parameters:
 
 ## Calibration
 
-4-point perspective correction maps camera coordinates to projector output:
+Two separate calibration systems map camera input to projector output:
 
-1. Press `Space` to enter calibration mode
-2. Drag corner handles on the camera view to match your projection surface
-3. Press `Ctrl+S` to save (persists in localStorage)
+### Camera Calibration (Input)
+1. Press `Space` to enter camera calibration mode
+2. Drag corner handles on the camera view to define the tracking area
+3. Only laser detections inside this area are tracked
+4. Changes autosave to localStorage
 
-The transformation uses homography matrix calculation for accurate perspective warping.
+### Projector Calibration (Output)
+1. Press `P` to enter projector calibration mode
+2. Drag corner handles to warp the output to match your projection surface
+3. Enable checkerboard pattern for alignment
+4. Changes autosave to localStorage
+
+Both use homography matrix calculation for accurate perspective warping.
+
+### Camera Settings
+Adjust camera rotation (0°, 90°, 180°, 270°) and flip (horizontal/vertical) in the Camera Settings panel to match your physical camera orientation.
+
+## Dual Display Setup
+
+The interface features a split preview:
+
+- **Projection Output** - Shows exactly what will be displayed on the projector (including calibration warping)
+- **Control** - Interactive canvas for mouse input and testing
+
+To use with a projector:
+
+1. Click the **Projection Window** button to open a separate window
+2. Drag the window to your projector/secondary display
+3. Use your operating system's fullscreen (not keyboard shortcut) for the popup
+4. The popup automatically reconnects if you refresh the main window
 
 ## Architecture
 
 ```
 src/
-├── main.js                 # Entry point, keyboard handlers
+├── main.js                    # Entry point, keyboard handlers
 ├── app/
-│   ├── AppController.js    # Main orchestrator, render loop
-│   └── TweakpaneGui.js     # Floating UI with color/mode mosaics
+│   ├── AppController.js       # Main orchestrator, render loop
+│   ├── AppGuiAdapter.js       # Facade decoupling GUI from app internals
+│   ├── TweakpaneGui.js        # Floating UI with color/mode mosaics
+│   └── SettingsManager.js     # localStorage persistence, presets
 ├── tracking/
-│   ├── Camera.js           # WebRTC camera, device selection
-│   ├── LaserTracker.js     # OpenCV.js HSV + Kalman + OpticalFlow
-│   └── CoordWarping.js     # Perspective transform matrix
+│   ├── Camera.js              # WebRTC camera, rotation, flip
+│   ├── LaserTracker.js        # OpenCV.js HSV + Kalman + OpticalFlow
+│   └── CoordWarping.js        # Perspective transform matrix
+├── calibration/
+│   ├── CameraCalibrationManager.js    # Input calibration (tracking area)
+│   └── ProjectorCalibrationManager.js # Output calibration (projection warp)
 ├── brushes/
-│   ├── BaseBrush.js        # Abstract brush interface
-│   ├── VectorBrush.js      # Main brush: 6 modes, drips, baking
-│   └── PngBrush.js         # Stamp brush with PNG patterns
+│   ├── BaseBrush.js           # Abstract brush interface
+│   ├── BrushManager.js        # Brush lifecycle and compositing
+│   ├── VectorBrush.js         # Main brush with drips and baking
+│   ├── DripManager.js         # Physics-based drip simulation
+│   ├── PngBrush.js            # Stamp brush with PNG patterns
+│   └── modes/                 # Strategy pattern for brush rendering
+│       ├── SmoothModeStrategy.js
+│       ├── GlowModeStrategy.js
+│       ├── BasicModeStrategy.js
+│       └── RibbonModeStrategy.js
+├── rendering/
+│   └── RenderingPipeline.js   # Canvas rendering, popup sync
 └── effects/
-    └── PostProcessor.js    # WebGL bloom shader pipeline
+    └── PostProcessor.js       # WebGL bloom shader pipeline
 ```
 
 ## Building for Production

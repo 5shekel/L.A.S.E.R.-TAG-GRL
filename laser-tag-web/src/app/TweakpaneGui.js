@@ -910,43 +910,33 @@ export class TweakpaneGui {
     const folder = this.pane.addFolder({ title: 'Calibration', expanded: false });
     this.folders.calibration = folder;
 
-    // Camera calibration (input)
-    folder.addBlade({
-      view: 'text',
-      label: '',
-      parse: (v) => String(v),
-      value: '--- Camera (Input) ---'
-    });
+    // Camera calibration (input) - nested folder
+    const cameraFolder = folder.addFolder({ title: 'Camera (Input)', expanded: true });
 
-    folder.addButton({ title: 'Camera Calib (Space)' }).on('click', () => {
+    cameraFolder.addButton({ title: 'Toggle Calibration (Space)' }).on('click', () => {
       this.toggleCalibration();
     });
 
-    folder.addButton({ title: 'Reset Camera' }).on('click', () => {
+    cameraFolder.addButton({ title: 'Reset' }).on('click', () => {
       this.adapter.resetCalibration();
     });
 
-    // Projector calibration (output)
-    folder.addBlade({
-      view: 'text',
-      label: '',
-      parse: (v) => String(v),
-      value: '--- Projector (Output) ---'
-    });
+    // Projector calibration (output) - nested folder
+    const projectorFolder = folder.addFolder({ title: 'Projector (Output)', expanded: true });
 
-    folder.addButton({ title: 'Projector Calib (P)' }).on('click', () => {
+    projectorFolder.addButton({ title: 'Toggle Calibration (P)' }).on('click', () => {
       this.adapter.toggleProjectorCalibration();
     });
 
     // Checkerboard pattern for calibration
     this.state.showCheckerboard = false;
-    folder.addBinding(this.state, 'showCheckerboard', {
+    projectorFolder.addBinding(this.state, 'showCheckerboard', {
       label: 'Checkerboard'
     }).on('change', (ev) => {
       this.adapter.setProjectorCheckerboard(ev.value);
     });
 
-    folder.addButton({ title: 'Reset Projector' }).on('click', () => {
+    projectorFolder.addButton({ title: 'Reset' }).on('click', () => {
       this.adapter.resetProjectorCalibration();
     });
   }
@@ -1333,7 +1323,26 @@ export class TweakpaneGui {
       container: container
     });
 
-    console.log('Projector window opened. Press F for fullscreen.');
+    // Update button state - stop animation when window is open
+    const projectorBtn = document.getElementById('projector-btn');
+    if (projectorBtn) {
+      projectorBtn.classList.add('window-open');
+    }
+
+    // Listen for popup close to restore button animation
+    const checkPopupClosed = setInterval(() => {
+      if (!this.projectorWindow || this.projectorWindow.closed) {
+        clearInterval(checkPopupClosed);
+        if (projectorBtn) {
+          projectorBtn.classList.remove('window-open');
+        }
+        this.projectorWindow = null;
+        this.adapter.setProjectorPopup(null);
+        localStorage.removeItem(POPUP_OPEN_KEY);
+      }
+    }, 500);
+
+    console.log('Projector window opened.');
   }
 
   /**

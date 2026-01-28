@@ -188,9 +188,44 @@
       background: #111;
       border: 1px solid #333;
       border-radius: 8px;
-      padding: 12px;
       flex: 1;
-      overflow-y: scroll;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .instructions-header {
+      font-size: 10px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 8px 12px;
+      border-bottom: 1px solid #333;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #111;
+      flex-shrink: 0;
+      border-radius: 8px 8px 0 0;
+    }
+
+    .instructions-header .about-link {
+      font-size: 9px;
+      color: #666;
+      cursor: pointer;
+      text-transform: none;
+      letter-spacing: normal;
+    }
+
+    .instructions-header .about-link:hover {
+      color: #4ade80;
+    }
+
+    .instructions-content {
+      padding: 12px;
+      overflow-y: auto;
+      flex: 1;
       min-height: 0;
     }
 
@@ -252,16 +287,16 @@
     .sidebar {
       width: 300px;
       min-width: 300px;
-      background: #111;
-      border-left: 1px solid #333;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
+      padding-right: 16px;
     }
 
     #gui-container {
       flex: 1;
       overflow-y: auto;
+      padding-top: 16px;
     }
 
     /* Status bar */
@@ -598,7 +633,11 @@
       height: 100%;
       pointer-events: none;
     }
-
+    
+    .tp-rotv_b, .tp-fldv_b {
+        border: 1px solid #333333 !important;
+    }
+    
     /* Tweakpane customization - brighter colors */
     #gui-container .tp-dfwv {
       width: 100% !important;
@@ -606,11 +645,9 @@
 
     #gui-container .tp-rotv_t {
       text-align: center;
-      font-size: 14px;
-      letter-spacing: 3px;
-      padding: 12px 0;
+      letter-spacing: 3px;    
     }
-
+    
     :root {
       --tp-base-background-color: hsl(0, 0%, 12%);
       --tp-base-shadow-color: hsla(0, 0%, 0%, 0.3);
@@ -757,7 +794,7 @@
             <h3>Browser Edition (2026)</h3>
             <ul>
               <li><strong><a href="https://github.com/LeonFedotov" target="_blank" rel="noopener noreferrer">Leon Fedotov</a></strong> - JavaScript Port</li>
-              <li><strong>Claude (Anthropic)</strong> - AI Pair Programming</li>
+              <li><strong><a href="https://claude.ai/" target="_blank" rel="noopener noreferrer">Claude (Anthropic)</a></strong> - AI Pair Programming</li>
             </ul>
           </div>
         </div>
@@ -813,6 +850,8 @@
 
           <!-- Instructions -->
           <div class="instructions-panel">
+            <div class="instructions-header"><span>Instructions</span><span id="about-link-main" class="about-link">About</span></div>
+            <div class="instructions-content">
             <h3>Keyboard Shortcuts</h3>
             <div class="shortcut-grid">
               <div class="shortcut"><kbd>Space</kbd><span>Camera calib</span></div>
@@ -821,7 +860,7 @@
               <div class="shortcut"><kbd>M</kbd><span>Mouse input</span></div>
               <div class="shortcut"><kbd>D</kbd><span>Debug view</span></div>
               <div class="shortcut"><kbd>E</kbd><span>Erase zone</span></div>
-              <div class="shortcut"><kbd>1-4</kbd><span>Switch brush</span></div>
+              <div class="shortcut"><kbd>1-6</kbd><span>Switch mode</span></div>
               <div class="shortcut"><kbd>↑↓</kbd><span>Brush size</span></div>
               <div class="shortcut"><kbd>Ctrl+Z</kbd><span>Undo</span></div>
             </div>
@@ -858,6 +897,7 @@
 
             <h4>Erase Zone</h4>
             <p>Enable erase zone to create a "shake to clear" area. Point your laser there to clear the canvas.</p>
+            </div>
           </div>
         </div>
 
@@ -892,7 +932,6 @@
         <span id="status-fps">FPS: <span>0</span></span>
         <span id="status-position">Position: <span>--</span></span>
         <span id="status-mode">Mode: <span>brush</span></span>
-        <span id="about-link-main" class="about-link">About</span>
       </div>
     </div>
 

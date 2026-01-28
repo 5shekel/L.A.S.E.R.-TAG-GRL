@@ -241,9 +241,7 @@ export class TweakpaneGui {
         background: transparent !important;
         border: none !important;
       }
-      .tp-rotv_t {
-        padding: 6px 8px !important;
-      }
+
       /* Individual folders have background */
       .tp-fldv {
         background: rgba(30, 30, 30, 0.85) !important;

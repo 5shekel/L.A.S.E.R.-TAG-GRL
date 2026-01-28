@@ -5,13 +5,24 @@
 import { Pane } from 'tweakpane';
 import * as EssentialsPlugin from '@tweakpane/plugin-essentials';
 import { SettingsManager } from './SettingsManager.js';
+import { AppGuiAdapter } from './AppGuiAdapter.js';
+
+// Channel name for popup window communication
+const POPUP_CHANNEL = 'laserTagProjectorChannel';
+const POPUP_OPEN_KEY = 'laserTag_projectorPopupOpen';
 
 export class TweakpaneGui {
   constructor(app) {
     this.app = app;
+    this.adapter = new AppGuiAdapter(app);
     this.pane = null;
     this.folders = {};
     this.bindings = [];
+    this.projectorWindow = null;
+
+    // BroadcastChannel for popup reconnection
+    this.popupChannel = new BroadcastChannel(POPUP_CHANNEL);
+    this.setupPopupChannelListener();
 
     // Settings persistence manager
     this.settingsManager = new SettingsManager();
@@ -40,6 +51,76 @@ export class TweakpaneGui {
   }
 
   /**
+   * Set up BroadcastChannel listener for popup reconnection
+   */
+  setupPopupChannelListener() {
+    this.popupChannel.onmessage = (event) => {
+      if (event.data.type === 'popup-ready' && !this.projectorWindow) {
+        // Popup is ready - try to reconnect (only if we don't already have a reference)
+        this.tryReconnectPopup();
+      }
+    };
+  }
+
+  /**
+   * Try to reconnect to an existing popup window after page refresh
+   */
+  tryReconnectPopup() {
+    // Already connected
+    if (this.projectorWindow && !this.projectorWindow.closed) {
+      return;
+    }
+
+    // Check if a popup was open before refresh
+    if (localStorage.getItem(POPUP_OPEN_KEY) !== 'true') {
+      return;
+    }
+
+    // Use opener relationship or find by name without focusing
+    // window.open with empty URL and same name returns reference without focusing
+    try {
+      const existingPopup = window.open('', 'laserTagProjector', 'noopener=false');
+      if (existingPopup && !existingPopup.closed) {
+        const canvas = existingPopup.document.getElementById('projector-canvas');
+        const overlayCanvas = existingPopup.document.getElementById('overlay-canvas');
+        const container = existingPopup.document.getElementById('canvas-container');
+        if (canvas && overlayCanvas) {
+          this.projectorWindow = existingPopup;
+          const ctx = canvas.getContext('2d');
+          const overlayCtx = overlayCanvas.getContext('2d');
+
+          // Re-register event handlers
+          this.setupPopupEventHandlers(existingPopup, canvas, overlayCanvas, container);
+
+          // Update adapter with popup reference
+          this.adapter.setProjectorPopup({
+            window: existingPopup,
+            canvas: canvas,
+            ctx: ctx,
+            overlayCanvas: overlayCanvas,
+            overlayCtx: overlayCtx,
+            container: container
+          });
+
+          // Tell popup to stop sending ready messages
+          this.popupChannel.postMessage({ type: 'connected' });
+
+          // Return focus to main window
+          window.focus();
+
+          console.log('Reconnected to existing projector window');
+          return;
+        }
+      }
+    } catch (e) {
+      // Cross-origin or other error
+    }
+
+    // Popup was closed or doesn't exist anymore
+    localStorage.removeItem(POPUP_OPEN_KEY);
+  }
+
+  /**
    * Trigger autosave of current state
    */
   triggerAutosave() {
@@ -50,12 +131,12 @@ export class TweakpaneGui {
    * Apply current GUI state to app components (used when loading autosave)
    */
   applyStateToApp() {
-    // Brush settings
-    this.app.setBrushColor(this.state.brushColor);
-    this.app.setBrushWidth(this.state.brushWidth);
-    this.app.setActiveBrush(this.state.brushIndex);
+    // Brush settings via adapter
+    this.adapter.setBrushColor(this.state.brushColor);
+    this.adapter.setBrushWidth(this.state.brushWidth);
+    this.adapter.setActiveBrush(this.state.brushIndex);
 
-    const brush = this.app.getActiveBrush();
+    const brush = this.adapter.getActiveBrush();
     if (brush.params.mode !== undefined) {
       brush.params.mode = this.state.brushMode;
     }
@@ -72,32 +153,31 @@ export class TweakpaneGui {
     // Drips
     this.updateDripParams();
 
-    // Bloom
-    if (this.app.postProcessor) {
-      this.app.postProcessor.params.bloomEnabled = this.state.bloomEnabled;
-      this.app.postProcessor.params.bloomIntensity = this.state.bloomIntensity;
-      this.app.postProcessor.params.bloomThreshold = this.state.bloomThreshold;
-    }
+    // Bloom via adapter
+    this.adapter.setBloomEnabled(this.state.bloomEnabled);
+    this.adapter.setBloomIntensity(this.state.bloomIntensity);
+    this.adapter.setBloomThreshold(this.state.bloomThreshold);
 
     // Tracker
     this.updateTrackerParams();
 
     // Display
-    this.app.settings.backgroundColor = this.state.backgroundColor;
-    this.app.useMouseInput = this.state.useMouseInput;
+    this.adapter.setBackgroundColor(this.state.backgroundColor);
+    this.adapter.setMouseInputEnabled(this.state.useMouseInput);
 
     // Camera
-    if (this.app.camera) {
-      this.app.camera.setFlipH(this.state.flipH);
-      this.app.camera.setFlipV(this.state.flipV);
-    }
+    this.adapter.setCameraFlipH(this.state.flipH);
+    this.adapter.setCameraFlipV(this.state.flipV);
+    this.adapter.setCameraRotation(this.state.rotation);
 
     // Erase zone
-    this.app.settings.eraseZoneEnabled = this.state.eraseZoneEnabled;
-    this.app.settings.eraseZoneX = this.state.eraseZoneX / 100;
-    this.app.settings.eraseZoneY = this.state.eraseZoneY / 100;
-    this.app.settings.eraseZoneWidth = this.state.eraseZoneWidth / 100;
-    this.app.settings.eraseZoneHeight = this.state.eraseZoneHeight / 100;
+    this.adapter.setEraseZone({
+      enabled: this.state.eraseZoneEnabled,
+      x: this.state.eraseZoneX / 100,
+      y: this.state.eraseZoneY / 100,
+      width: this.state.eraseZoneWidth / 100,
+      height: this.state.eraseZoneHeight / 100
+    });
   }
 
   /**
@@ -141,6 +221,9 @@ export class TweakpaneGui {
 
     // Apply loaded settings to app (important when loading autosave)
     this.applyStateToApp();
+
+    // Try to reconnect to an existing projector popup window
+    this.tryReconnectPopup();
   }
 
   /**
@@ -250,7 +333,7 @@ export class TweakpaneGui {
       const color = this.colorPalette[idx];
       this.state.brushColor = color.hex;
       this.state.brushColorIndex = idx;
-      this.app.setBrushColor(color.hex);
+      this.adapter.setBrushColor(color.hex);
       this.updateColorSelection();
       this.triggerAutosave();
     });
@@ -259,7 +342,7 @@ export class TweakpaneGui {
     folder.addBinding(this.state, 'brushColor', {
       label: 'Custom'
     }).on('change', (ev) => {
-      this.app.setBrushColor(ev.value);
+      this.adapter.setBrushColor(ev.value);
       this.triggerAutosave();
     });
 
@@ -276,7 +359,7 @@ export class TweakpaneGui {
       const color = this.colorPalette[idx];
       this.state.shadowColor = color.hex;
       this.state.shadowColorIndex = idx;
-      const brush = this.app.getActiveBrush();
+      const brush = this.adapter.getActiveBrush();
       if (brush.params.shadowColor !== undefined) {
         brush.params.shadowColor = color.hex;
       }
@@ -288,7 +371,7 @@ export class TweakpaneGui {
     folder.addBinding(this.state, 'shadowColor', {
       label: 'Custom'
     }).on('change', (ev) => {
-      const brush = this.app.getActiveBrush();
+      const brush = this.adapter.getActiveBrush();
       if (brush.params.shadowColor !== undefined) {
         brush.params.shadowColor = ev.value;
       }
@@ -310,7 +393,7 @@ export class TweakpaneGui {
     this.folders.styles = folder;
 
     // Brush type selection
-    const brushList = this.app.getBrushList();
+    const brushList = this.adapter.getBrushList();
     const brushOptions = brushList.reduce((acc, b) => {
       acc[b.name] = b.index;
       return acc;
@@ -320,7 +403,7 @@ export class TweakpaneGui {
       label: 'Type',
       options: brushOptions
     }).on('change', (ev) => {
-      this.app.setActiveBrush(ev.value);
+      this.adapter.setActiveBrush(ev.value);
       this.triggerAutosave();
     });
 
@@ -331,7 +414,7 @@ export class TweakpaneGui {
       max: 128,
       step: 1
     }).on('change', (ev) => {
-      this.app.setBrushWidth(ev.value);
+      this.adapter.setBrushWidth(ev.value);
       this.triggerAutosave();
     });
 
@@ -357,7 +440,7 @@ export class TweakpaneGui {
       const idx = ev.index[1] * 3 + ev.index[0];
       const mode = this.modeList[idx];
       this.state.brushMode = mode.value;
-      const brush = this.app.getActiveBrush();
+      const brush = this.adapter.getActiveBrush();
       if (brush.params.mode !== undefined) {
         brush.params.mode = mode.value;
       }
@@ -375,7 +458,7 @@ export class TweakpaneGui {
       max: 1,
       step: 0.1
     }).on('change', (ev) => {
-      const brush = this.app.getActiveBrush();
+      const brush = this.adapter.getActiveBrush();
       if (brush.params.glowIntensity !== undefined) {
         brush.params.glowIntensity = ev.value;
       }
@@ -389,7 +472,7 @@ export class TweakpaneGui {
       max: 20,
       step: 1
     }).on('change', (ev) => {
-      const brush = this.app.getActiveBrush();
+      const brush = this.adapter.getActiveBrush();
       if (brush.params.shadowOffset !== undefined) {
         brush.params.shadowOffset = ev.value;
       }
@@ -546,9 +629,7 @@ export class TweakpaneGui {
     folder.addBinding(this.state, 'bloomEnabled', {
       label: 'Bloom'
     }).on('change', (ev) => {
-      if (this.app.postProcessor) {
-        this.app.postProcessor.params.bloomEnabled = ev.value;
-      }
+      this.adapter.setBloomEnabled(ev.value);
       this.triggerAutosave();
     });
 
@@ -558,9 +639,7 @@ export class TweakpaneGui {
       max: 2,
       step: 0.1
     }).on('change', (ev) => {
-      if (this.app.postProcessor) {
-        this.app.postProcessor.params.bloomIntensity = ev.value;
-      }
+      this.adapter.setBloomIntensity(ev.value);
       this.triggerAutosave();
     });
 
@@ -570,9 +649,7 @@ export class TweakpaneGui {
       max: 1,
       step: 0.05
     }).on('change', (ev) => {
-      if (this.app.postProcessor) {
-        this.app.postProcessor.params.bloomThreshold = ev.value;
-      }
+      this.adapter.setBloomThreshold(ev.value);
       this.triggerAutosave();
     });
   }
@@ -581,7 +658,7 @@ export class TweakpaneGui {
    * Update drip parameters on all brushes
    */
   updateDripParams() {
-    for (const brush of this.app.brushes) {
+    for (const brush of this.adapter.getBrushes()) {
       if (brush.params.dripsEnabled !== undefined) {
         brush.params.dripsEnabled = this.state.dripsEnabled;
         brush.params.dripsFrequency = this.state.dripsFrequency;
@@ -601,7 +678,7 @@ export class TweakpaneGui {
 
     // Camera selection dropdown
     try {
-      const cameras = await this.app.camera.constructor.getAvailableCameras();
+      const cameras = await this.adapter.getAvailableCameras();
       if (cameras.length > 0) {
         const cameraOptions = {};
         cameras.forEach((cam, i) => {
@@ -610,14 +687,9 @@ export class TweakpaneGui {
         });
 
         let currentDeviceId = cameras[0].deviceId;
-        if (this.app.camera.stream) {
-          const videoTrack = this.app.camera.stream.getVideoTracks()[0];
-          if (videoTrack) {
-            const settings = videoTrack.getSettings();
-            if (settings.deviceId) {
-              currentDeviceId = settings.deviceId;
-            }
-          }
+        const storedDeviceId = this.adapter.getCurrentCameraDeviceId();
+        if (storedDeviceId) {
+          currentDeviceId = storedDeviceId;
         }
 
         this.state.selectedCamera = currentDeviceId;
@@ -626,11 +698,7 @@ export class TweakpaneGui {
           options: cameraOptions
         }).on('change', async (ev) => {
           try {
-            await this.app.camera.switchCamera(ev.value);
-            this.app.debugCanvas.width = this.app.camera.width;
-            this.app.debugCanvas.height = this.app.camera.height;
-            this.app.captureCanvas.width = this.app.camera.width;
-            this.app.captureCanvas.height = this.app.camera.height;
+            await this.adapter.switchCameraDevice(ev.value);
             console.log('Switched to camera:', ev.value);
           } catch (e) {
             console.error('Failed to switch camera:', e);
@@ -653,13 +721,7 @@ export class TweakpaneGui {
     }).on('change', async (ev) => {
       const [w, h] = ev.value.split('x').map(Number);
       try {
-        await this.app.camera.setResolution(w, h);
-        this.app.debugCanvas.width = this.app.camera.width;
-        this.app.debugCanvas.height = this.app.camera.height;
-        this.app.captureCanvas.width = this.app.camera.width;
-        this.app.captureCanvas.height = this.app.camera.height;
-        this.app.tracker.init(this.app.camera.width, this.app.camera.height);
-        console.log('Resolution changed to:', this.app.camera.width, 'x', this.app.camera.height);
+        await this.adapter.setCameraResolution(w, h);
       } catch (e) {
         console.error('Failed to change resolution:', e);
       }
@@ -669,14 +731,28 @@ export class TweakpaneGui {
     folder.addBinding(this.state, 'flipH', {
       label: 'Flip Horizontal'
     }).on('change', (ev) => {
-      this.app.camera.setFlipH(ev.value);
+      this.adapter.setCameraFlipH(ev.value);
       this.triggerAutosave();
     });
 
     folder.addBinding(this.state, 'flipV', {
       label: 'Flip Vertical'
     }).on('change', (ev) => {
-      this.app.camera.setFlipV(ev.value);
+      this.adapter.setCameraFlipV(ev.value);
+      this.triggerAutosave();
+    });
+
+    // Rotation control
+    folder.addBinding(this.state, 'rotation', {
+      label: 'Rotation',
+      options: {
+        '0°': 0,
+        '90°': 90,
+        '180°': 180,
+        '270°': 270
+      }
+    }).on('change', (ev) => {
+      this.adapter.setCameraRotation(ev.value);
       this.triggerAutosave();
     });
   }
@@ -847,7 +923,7 @@ export class TweakpaneGui {
     });
 
     folder.addButton({ title: 'Reset Camera' }).on('click', () => {
-      this.app.resetCalibration();
+      this.adapter.resetCalibration();
     });
 
     // Projector calibration (output)
@@ -859,17 +935,19 @@ export class TweakpaneGui {
     });
 
     folder.addButton({ title: 'Projector Calib (P)' }).on('click', () => {
-      this.app.toggleProjectorCalibration();
+      this.adapter.toggleProjectorCalibration();
+    });
+
+    // Checkerboard pattern for calibration
+    this.state.showCheckerboard = false;
+    folder.addBinding(this.state, 'showCheckerboard', {
+      label: 'Checkerboard'
+    }).on('change', (ev) => {
+      this.adapter.setProjectorCheckerboard(ev.value);
     });
 
     folder.addButton({ title: 'Reset Projector' }).on('click', () => {
-      this.app.resetProjectorCalibration();
-    });
-
-    // Save all
-    folder.addButton({ title: 'Save All (Ctrl+S)' }).on('click', () => {
-      this.app.saveCalibration();
-      this.app.saveProjectorCalibration();
+      this.adapter.resetProjectorCalibration();
     });
   }
 
@@ -883,14 +961,14 @@ export class TweakpaneGui {
     folder.addBinding(this.state, 'backgroundColor', {
       label: 'Background'
     }).on('change', (ev) => {
-      this.app.settings.backgroundColor = ev.value;
+      this.adapter.setBackgroundColor(ev.value);
       this.triggerAutosave();
     });
 
     folder.addBinding(this.state, 'useMouseInput', {
       label: 'Mouse (M)'
     }).on('change', (ev) => {
-      this.app.useMouseInput = ev.value;
+      this.adapter.setMouseInputEnabled(ev.value);
       this.triggerAutosave();
     });
 
@@ -907,11 +985,11 @@ export class TweakpaneGui {
     this.folders.actions = folder;
 
     folder.addButton({ title: 'Clear Canvas (C)' }).on('click', () => {
-      this.app.clearCanvas();
+      this.adapter.clearCanvas();
     });
 
     folder.addButton({ title: 'Undo' }).on('click', () => {
-      this.app.undo();
+      this.adapter.undo();
     });
 
     folder.addButton({ title: 'Projector Window' }).on('click', () => {
@@ -929,7 +1007,7 @@ export class TweakpaneGui {
     folder.addBinding(this.state, 'eraseZoneEnabled', {
       label: 'Enabled'
     }).on('change', (ev) => {
-      this.app.settings.eraseZoneEnabled = ev.value;
+      this.adapter.setEraseZone({ enabled: ev.value });
       this.triggerAutosave();
     });
 
@@ -939,7 +1017,7 @@ export class TweakpaneGui {
       max: 100,
       step: 1
     }).on('change', (ev) => {
-      this.app.settings.eraseZoneX = ev.value / 100;
+      this.adapter.setEraseZone({ x: ev.value / 100 });
       this.triggerAutosave();
     });
 
@@ -949,7 +1027,7 @@ export class TweakpaneGui {
       max: 100,
       step: 1
     }).on('change', (ev) => {
-      this.app.settings.eraseZoneY = ev.value / 100;
+      this.adapter.setEraseZone({ y: ev.value / 100 });
       this.triggerAutosave();
     });
 
@@ -959,7 +1037,7 @@ export class TweakpaneGui {
       max: 50,
       step: 1
     }).on('change', (ev) => {
-      this.app.settings.eraseZoneWidth = ev.value / 100;
+      this.adapter.setEraseZone({ width: ev.value / 100 });
       this.triggerAutosave();
     });
 
@@ -969,7 +1047,7 @@ export class TweakpaneGui {
       max: 50,
       step: 1
     }).on('change', (ev) => {
-      this.app.settings.eraseZoneHeight = ev.value / 100;
+      this.adapter.setEraseZone({ height: ev.value / 100 });
       this.triggerAutosave();
     });
   }
@@ -1123,8 +1201,9 @@ export class TweakpaneGui {
       return;
     }
 
-    this.projectorWindow = window.open('', 'projector',
-      'width=1280,height=720,menubar=no,toolbar=no,location=no,status=no');
+    // Open as popup with minimal chrome - no URL bar, toolbars, menus
+    this.projectorWindow = window.open('', 'laserTagProjector',
+      'popup=yes,width=1280,height=720,menubar=no,toolbar=no,location=no,status=no,scrollbars=no,resizable=yes,titlebar=no,directories=no');
 
     if (!this.projectorWindow) {
       alert('Popup blocked! Please allow popups for this site.');
@@ -1145,6 +1224,7 @@ export class TweakpaneGui {
             width: 100vw;
             height: 100vh;
             position: relative;
+            isolation: isolate;
           }
           #canvas-container {
             position: absolute;
@@ -1153,8 +1233,13 @@ export class TweakpaneGui {
             width: 100%;
             height: 100%;
             overflow: visible;
+            background: #000;
           }
-          canvas {
+          #canvas-container:fullscreen {
+            width: 100vw;
+            height: 100vh;
+          }
+          #projector-canvas {
             position: absolute;
             top: 0;
             left: 0;
@@ -1162,90 +1247,169 @@ export class TweakpaneGui {
             height: 100%;
             display: block;
             transform-origin: 0 0;
+            z-index: 1;
           }
-          .instructions {
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            color: #333;
-            font-family: monospace;
-            font-size: 12px;
-            z-index: 100;
+          #overlay-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
             pointer-events: none;
+            z-index: 1000 !important;
+          }
+          /* Ensure canvases fill fullscreen container and maintain z-index */
+          #canvas-container:fullscreen #projector-canvas {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+          }
+          #canvas-container:fullscreen #overlay-canvas {
+            width: 100%;
+            height: 100%;
+            z-index: 1000 !important;
           }
         </style>
       </head>
       <body>
         <div id="canvas-container">
           <canvas id="projector-canvas"></canvas>
+          <canvas id="overlay-canvas"></canvas>
         </div>
-        <div class="instructions">Press F for fullscreen, P for calibration, ESC to exit</div>
+        <script>
+          // BroadcastChannel for reconnection after main window refresh
+          const channel = new BroadcastChannel('laserTagProjectorChannel');
+          let readyInterval = null;
+
+          // Listen for connection confirmation
+          channel.onmessage = (event) => {
+            if (event.data.type === 'connected' && readyInterval) {
+              clearInterval(readyInterval);
+              readyInterval = null;
+            }
+          };
+
+          // Notify main window that popup is ready
+          channel.postMessage({ type: 'popup-ready' });
+
+          // Send ready message periodically until connected (max 30 seconds)
+          readyInterval = setInterval(() => {
+            channel.postMessage({ type: 'popup-ready' });
+          }, 2000);
+          setTimeout(() => { if (readyInterval) clearInterval(readyInterval); }, 30000);
+
+          // Mark popup as open in localStorage
+          localStorage.setItem('laserTag_projectorPopupOpen', 'true');
+
+          // Clean up on close
+          window.addEventListener('beforeunload', () => {
+            localStorage.removeItem('laserTag_projectorPopupOpen');
+            channel.close();
+          });
+        </script>
       </body>
       </html>
     `);
 
+    // Mark popup as open
+    localStorage.setItem(POPUP_OPEN_KEY, 'true');
+
     const canvas = this.projectorWindow.document.getElementById('projector-canvas');
     const ctx = canvas.getContext('2d');
+    const overlayCanvas = this.projectorWindow.document.getElementById('overlay-canvas');
+    const overlayCtx = overlayCanvas.getContext('2d');
+    const container = this.projectorWindow.document.getElementById('canvas-container');
 
-    const resize = () => {
-      canvas.width = this.projectorWindow.innerWidth;
-      canvas.height = this.projectorWindow.innerHeight;
-    };
-    resize();
-    this.projectorWindow.addEventListener('resize', resize);
+    // Set up event handlers
+    this.setupPopupEventHandlers(this.projectorWindow, canvas, overlayCanvas, container);
 
-    this.projectorWindow.addEventListener('keydown', (e) => {
-      if (e.key === 'f' || e.key === 'F') {
-        canvas.requestFullscreen().catch(() => {});
-      }
-      // P key removed - calibration only from main window
-      if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
-        this.app.saveProjectorCalibration();
-        e.preventDefault();
-      }
+    this.adapter.setProjectorPopup({
+      window: this.projectorWindow,
+      canvas: canvas,
+      ctx: ctx,
+      overlayCanvas: overlayCanvas,
+      overlayCtx: overlayCtx,
+      container: container
     });
 
-    // Mouse handlers for projector calibration on popup window
+    console.log('Projector window opened. Press F for fullscreen.');
+  }
+
+  /**
+   * Set up event handlers for popup window
+   * @param {Window} popupWindow - The popup window
+   * @param {HTMLCanvasElement} canvas - The content canvas
+   * @param {HTMLCanvasElement} overlayCanvas - The overlay canvas (for calibration UI)
+   * @param {HTMLElement} container - The canvas container (for fullscreen)
+   */
+  setupPopupEventHandlers(popupWindow, canvas, overlayCanvas, container) {
+    const resize = () => {
+      // Use screen dimensions if in fullscreen, otherwise window dimensions
+      const isFullscreen = popupWindow.document.fullscreenElement !== null;
+      let w, h;
+      if (isFullscreen) {
+        // In fullscreen, use screen dimensions
+        w = popupWindow.screen.width;
+        h = popupWindow.screen.height;
+      } else {
+        w = popupWindow.innerWidth;
+        h = popupWindow.innerHeight;
+      }
+      canvas.width = w;
+      canvas.height = h;
+      overlayCanvas.width = w;
+      overlayCanvas.height = h;
+      console.log(`Popup resize: ${w}x${h}, fullscreen: ${isFullscreen}`);
+    };
+    resize();
+    popupWindow.addEventListener('resize', resize);
+
+    // Also resize on fullscreen change
+    popupWindow.document.addEventListener('fullscreenchange', () => {
+      // Delay slightly to let fullscreen dimensions settle
+      setTimeout(resize, 100);
+      // Also resize again after a longer delay for slower systems
+      setTimeout(resize, 500);
+    });
+
+    // F key fullscreen disabled - use native OS fullscreen instead
+
+    // Mouse handlers for projector calibration - on overlay canvas for proper interaction
     let popupDragging = false;
 
-    canvas.addEventListener('mousedown', (e) => {
-      if (!this.app.isProjectorCalibrating) return;
-      const idx = this.app.selectProjectorPoint(e.clientX, e.clientY, canvas);
+    overlayCanvas.style.pointerEvents = 'auto';
+    overlayCanvas.addEventListener('mousedown', (e) => {
+      if (!this.adapter.isProjectorCalibrating()) return;
+      const idx = this.adapter.selectProjectorPoint(e.clientX, e.clientY, canvas);
       if (idx >= 0) {
         popupDragging = true;
       }
     });
 
-    canvas.addEventListener('mousemove', (e) => {
-      if (!this.app.isProjectorCalibrating || !popupDragging) return;
-      if (this.app.projectorSelectedPoint >= 0) {
-        this.app.moveProjectorPoint(this.app.projectorSelectedPoint, e.clientX, e.clientY, canvas);
+    overlayCanvas.addEventListener('mousemove', (e) => {
+      if (!this.adapter.isProjectorCalibrating() || !popupDragging) return;
+      const selectedPoint = this.adapter.getProjectorSelectedPoint();
+      if (selectedPoint >= 0) {
+        this.adapter.moveProjectorPoint(selectedPoint, e.clientX, e.clientY, overlayCanvas);
       }
     });
 
-    canvas.addEventListener('mouseup', () => {
+    overlayCanvas.addEventListener('mouseup', () => {
       popupDragging = false;
-      this.app.projectorSelectedPoint = -1;
+      this.adapter.setProjectorSelectedPoint(-1);
     });
 
-    canvas.addEventListener('mouseleave', () => {
+    overlayCanvas.addEventListener('mouseleave', () => {
       popupDragging = false;
     });
-
-    this.app.projectorPopup = {
-      window: this.projectorWindow,
-      canvas: canvas,
-      ctx: ctx
-    };
-
-    console.log('Projector window opened. Press F for fullscreen, P for calibration.');
   }
 
   /**
    * Sync GUI state from app
    */
   syncFromApp() {
-    const trackerParams = this.app.getTrackerParams();
+    const trackerParams = this.adapter.getTrackerParams();
 
     this.state.hueMin = trackerParams.hueMin;
     this.state.hueMax = trackerParams.hueMax;
@@ -1256,10 +1420,10 @@ export class TweakpaneGui {
     this.state.smoothing = trackerParams.smoothing;
     this.state.showDebug = trackerParams.showDebug;
 
-    this.app.setBrushColor(this.state.brushColor);
-    this.app.setBrushWidth(this.state.brushWidth);
+    this.adapter.setBrushColor(this.state.brushColor);
+    this.adapter.setBrushWidth(this.state.brushWidth);
 
-    const brush = this.app.getActiveBrush();
+    const brush = this.adapter.getActiveBrush();
     if (brush.params.mode !== undefined) {
       brush.params.mode = this.state.brushMode;
     }
@@ -1277,7 +1441,7 @@ export class TweakpaneGui {
    * Update tracker parameters from GUI state
    */
   updateTrackerParams() {
-    this.app.setTrackerParams({
+    this.adapter.setTrackerParams({
       hueMin: this.state.hueMin,
       hueMax: this.state.hueMax,
       satMin: this.state.satMin,
@@ -1311,7 +1475,7 @@ export class TweakpaneGui {
    * Toggle calibration mode
    */
   toggleCalibration() {
-    const isCalibrating = this.app.toggleCalibration();
+    const isCalibrating = this.adapter.toggleCalibration();
     console.log('Calibration mode:', isCalibrating ? 'ON' : 'OFF');
   }
 
@@ -1353,7 +1517,7 @@ export class TweakpaneGui {
    * Toggle fullscreen
    */
   toggleFullscreen() {
-    const projector = this.app.projectorCanvas;
+    const projector = this.adapter.getProjectorCanvas();
 
     if (!document.fullscreenElement) {
       projector.requestFullscreen().catch(err => {

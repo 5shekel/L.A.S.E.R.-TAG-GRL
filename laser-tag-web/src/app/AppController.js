@@ -4,22 +4,27 @@
  */
 import { Camera } from '../tracking/Camera.js';
 import { LaserTracker } from '../tracking/LaserTracker.js';
-import { CoordWarping } from '../tracking/CoordWarping.js';
-import { VectorBrush } from '../brushes/VectorBrush.js';
-import { PngBrush } from '../brushes/PngBrush.js';
 import { PostProcessor } from '../effects/PostProcessor.js';
-import { Homography } from '../utils/Homography.js';
+import { CameraCalibrationManager } from '../calibration/CameraCalibrationManager.js';
+import { ProjectorCalibrationManager } from '../calibration/ProjectorCalibrationManager.js';
+import { BrushManager } from '../brushes/BrushManager.js';
+import { RenderingPipeline } from '../rendering/RenderingPipeline.js';
 
 export class AppController {
   constructor() {
     // Core components
     this.camera = new Camera();
     this.tracker = new LaserTracker();
-    this.warping = new CoordWarping();
 
-    // Brushes
-    this.brushes = [];
-    this.activeBrushIndex = 0;
+    // Calibration managers
+    this.cameraCalibration = new CameraCalibrationManager();
+    this.projectorCalibration = new ProjectorCalibrationManager();
+
+    // Brush manager
+    this.brushManager = new BrushManager();
+
+    // Rendering pipeline
+    this.renderingPipeline = new RenderingPipeline();
 
     // Canvas elements
     this.projectorCanvas = null;
@@ -33,9 +38,6 @@ export class AppController {
 
     // State
     this.isRunning = false;
-    this.isCalibrating = false;  // Camera calibration
-    this.isProjectorCalibrating = false;  // Projector output calibration
-    this.projectorSelectedPoint = -1;
     this.frameCount = 0;
     this.fps = 0;
     this.lastFpsUpdate = 0;
@@ -62,15 +64,7 @@ export class AppController {
       eraseZoneX: 0.0,       // Left edge (0-1)
       eraseZoneY: 0.0,       // Top edge (0-1)
       eraseZoneWidth: 0.15,  // Width (0-1)
-      eraseZoneHeight: 0.15, // Height (0-1)
-      // Projector output quad (normalized 0-1 coordinates)
-      // Default is full canvas, can be adjusted to limit projection area
-      projectorQuad: [
-        { x: 0, y: 0 },      // Top-left
-        { x: 1, y: 0 },      // Top-right
-        { x: 1, y: 1 },      // Bottom-right
-        { x: 0, y: 1 }       // Bottom-left
-      ]
+      eraseZoneHeight: 0.15  // Height (0-1)
     };
 
     // Callbacks for UI updates
@@ -120,19 +114,19 @@ export class AppController {
     // Initialize tracker
     this.tracker.init(this.camera.width, this.camera.height);
 
-    // Initialize coordinate warping
-    this.warping.setSourceDimensions(this.camera.width, this.camera.height);
-    this.warping.setDestinationDimensions(
+    // Initialize calibration managers
+    this.cameraCalibration.init(
+      this.camera.width,
+      this.camera.height,
       this.projectorCanvas.width,
       this.projectorCanvas.height
     );
+    this.cameraCalibration.onStateChange = (key, value) => this.notifyStateChange(key, value);
+    this.projectorCalibration.onStateChange = (key, value) => this.notifyStateChange(key, value);
 
-    // Try to load saved calibrations
-    this.warping.load();
-    this.loadProjectorCalibration();
-
-    // Initialize brushes
-    this.initBrushes();
+    // Initialize brush manager
+    this.brushManager.init(this.projectorCanvas.width, this.projectorCanvas.height);
+    this.brushManager.onStateChange = (key, value) => this.notifyStateChange(key, value);
 
     // Initialize post-processor for bloom/glow effects
     this.postProcessor = new PostProcessor();
@@ -147,25 +141,20 @@ export class AppController {
       this.postProcessor = null;
     }
 
+    // Configure rendering pipeline
+    this.renderingPipeline.configure({
+      projectorCanvas: this.projectorCanvas,
+      projectorCtx: this.projectorCtx,
+      brushManager: this.brushManager,
+      postProcessor: this.postProcessor,
+      cameraCalibration: this.cameraCalibration,
+      projectorCalibration: this.projectorCalibration,
+      tracker: this.tracker,
+      settings: this.settings
+    });
+
     console.log('AppController initialized');
     return true;
-  }
-
-  /**
-   * Initialize brush system
-   */
-  initBrushes() {
-    // Vector brush
-    const vectorBrush = new VectorBrush();
-    vectorBrush.init(this.projectorCanvas.width, this.projectorCanvas.height);
-    this.brushes.push(vectorBrush);
-
-    // PNG stamp brush
-    const pngBrush = new PngBrush();
-    pngBrush.init(this.projectorCanvas.width, this.projectorCanvas.height);
-    this.brushes.push(pngBrush);
-
-    console.log(`Initialized ${this.brushes.length} brushes`);
   }
 
   /**
@@ -173,7 +162,7 @@ export class AppController {
    * @returns {BaseBrush}
    */
   getActiveBrush() {
-    return this.brushes[this.activeBrushIndex];
+    return this.brushManager.getActiveBrush();
   }
 
   /**
@@ -181,10 +170,7 @@ export class AppController {
    * @param {number} index - Brush index
    */
   setActiveBrush(index) {
-    if (index >= 0 && index < this.brushes.length) {
-      this.activeBrushIndex = index;
-      this.notifyStateChange('brush', this.getActiveBrush().name);
-    }
+    this.brushManager.setActiveBrush(index);
   }
 
   /**
@@ -192,11 +178,31 @@ export class AppController {
    * @returns {Array}
    */
   getBrushList() {
-    return this.brushes.map((b, i) => ({
-      index: i,
-      name: b.name,
-      active: i === this.activeBrushIndex
-    }));
+    return this.brushManager.getBrushList();
+  }
+
+  /**
+   * Get brushes array (for backwards compatibility)
+   * @returns {Array}
+   */
+  get brushes() {
+    return this.brushManager.brushes;
+  }
+
+  /**
+   * Get projector popup reference (delegates to rendering pipeline)
+   * @returns {Object|null}
+   */
+  get projectorPopup() {
+    return this.renderingPipeline.getProjectorPopup();
+  }
+
+  /**
+   * Set projector popup reference (delegates to rendering pipeline)
+   * @param {Object|null} popup
+   */
+  set projectorPopup(popup) {
+    this.renderingPipeline.setProjectorPopup(popup);
   }
 
   /**
@@ -229,17 +235,13 @@ export class AppController {
     }
 
     // Update brush canvas sizes
-    for (const brush of this.brushes) {
-      brush.init(rect.width, rect.height);
-    }
+    this.brushManager.resize(rect.width, rect.height);
 
-    // Update warping destination
-    this.warping.setDestinationDimensions(rect.width, rect.height);
+    // Update calibration manager dimensions
+    this.cameraCalibration.updateProjectorDimensions(rect.width, rect.height);
 
-    // Update post-processor dimensions
-    if (this.postProcessor && this.postProcessor.enabled) {
-      this.postProcessor.resize(rect.width, rect.height);
-    }
+    // Update rendering pipeline (handles post-processor resize)
+    this.renderingPipeline.resize(rect.width, rect.height);
   }
 
   /**
@@ -324,11 +326,13 @@ export class AppController {
       this.tracker.drawDebug(this.debugCtx, imageData);
 
       // Draw calibration quad on debug canvas
-      if (this.isCalibrating) {
-        const scaleX = this.debugCanvas.width / this.camera.width;
-        const scaleY = this.debugCanvas.height / this.camera.height;
-        this.warping.draw(this.debugCtx, scaleX, scaleY);
-      }
+      this.cameraCalibration.draw(
+        this.debugCtx,
+        this.camera.width,
+        this.camera.height,
+        this.debugCanvas.width,
+        this.debugCanvas.height
+      );
 
       // Draw erase zone rectangle if enabled
       if (this.settings.eraseZoneEnabled) {
@@ -389,8 +393,16 @@ export class AppController {
     const normPos = this.tracker.getNormalizedPosition();
     if (!normPos) return;
 
+    // Ignore detections outside the camera calibration area
+    if (!this.cameraCalibration.isInsideCalibrationArea(
+      this.tracker.currentPosition.x,
+      this.tracker.currentPosition.y
+    )) {
+      return;
+    }
+
     // Transform through calibration
-    const transformed = this.warping.transform(
+    const transformed = this.cameraCalibration.transform(
       this.tracker.currentPosition.x,
       this.tracker.currentPosition.y
     );
@@ -456,125 +468,9 @@ export class AppController {
    * Render the output
    */
   render() {
-    const ctx = this.projectorCtx;
-
-    // Clear with background color
-    ctx.fillStyle = this.settings.backgroundColor;
-    ctx.fillRect(0, 0, this.projectorCanvas.width, this.projectorCanvas.height);
-
-    // Render and composite ALL brushes (so strokes persist across brush switches)
-    for (const brush of this.brushes) {
-      brush.render();
-      brush.draw(ctx);
-    }
-
-    // Draw laser position indicator (optional)
-    if (this.tracker.isTracking && this.tracker.currentPosition) {
-      const transformed = this.warping.transform(
-        this.tracker.currentPosition.x,
-        this.tracker.currentPosition.y
-      );
-
-      ctx.beginPath();
-      ctx.arc(transformed.x, transformed.y, 5, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
-      ctx.fill();
-    }
-
-    // Apply WebGL post-processing (bloom effect)
-    if (this.postProcessor && this.postProcessor.enabled && this.postProcessor.params.bloomEnabled) {
-      const processedCanvas = this.postProcessor.process(this.projectorCanvas);
-      // Clear and draw processed result (flip Y to correct WebGL orientation)
-      ctx.fillStyle = this.settings.backgroundColor;
-      ctx.fillRect(0, 0, this.projectorCanvas.width, this.projectorCanvas.height);
-      ctx.save();
-      ctx.translate(0, this.projectorCanvas.height);
-      ctx.scale(1, -1);
-      ctx.drawImage(processedCanvas, 0, 0);
-      ctx.restore();
-    }
-
-    // Draw projector calibration overlay if active
-    if (this.isProjectorCalibrating) {
-      this.drawProjectorCalibrationOverlay(ctx);
-    }
-
-    // Also draw to popup projector window if open
-    if (this.projectorPopup && this.projectorPopup.window && !this.projectorPopup.window.closed) {
-      const popupCtx = this.projectorPopup.ctx;
-      const popupCanvas = this.projectorPopup.canvas;
-      // Use main projector canvas as source (already composited all brushes)
-      const srcCanvas = this.projectorCanvas;
-
-      const w = popupCanvas.width;
-      const h = popupCanvas.height;
-
-      // Clear the popup canvas
-      popupCtx.fillStyle = this.settings.backgroundColor;
-      popupCtx.fillRect(0, 0, w, h);
-
-      // Check if projector quad differs from default (full canvas)
-      const quad = this.settings.projectorQuad;
-      const isWarped = quad.some((p, i) => {
-        const defaultX = (i === 0 || i === 3) ? 0 : 1;
-        const defaultY = (i === 0 || i === 1) ? 0 : 1;
-        return Math.abs(p.x - defaultX) > 0.001 || Math.abs(p.y - defaultY) > 0.001;
-      });
-
-      if (isWarped && !this.isProjectorCalibrating) {
-        // Apply perspective warp using CSS matrix3d on the canvas element
-        // (Disabled during calibration so handles can be dragged correctly)
-        const H = Homography.createProjectionMapping(w, h, quad, w, h);
-        const cssMatrix = Homography.toMatrix3d(H, w, h);
-
-        // Apply CSS transform to the canvas element
-        popupCanvas.style.transformOrigin = '0 0';
-        popupCanvas.style.transform = cssMatrix;
-
-        // Draw content at full size (CSS will warp it)
-        popupCtx.drawImage(srcCanvas, 0, 0, w, h);
-      } else if (isWarped && this.isProjectorCalibrating) {
-        // During calibration, show unwarped view with overlay
-        // Reset any existing transform
-        popupCanvas.style.transform = 'none';
-
-        // Draw content at full size
-        popupCtx.drawImage(srcCanvas, 0, 0, w, h);
-
-        // Draw calibration overlay
-        this.drawProjectorCalibrationOverlay(popupCtx, w, h);
-      } else {
-        // No warping needed - reset any transform and draw normally
-        popupCanvas.style.transform = 'none';
-
-        // Calculate aspect-ratio-preserving scale (letterbox/pillarbox)
-        const srcAspect = srcCanvas.width / srcCanvas.height;
-        const dstAspect = w / h;
-
-        let drawWidth, drawHeight, offsetX, offsetY;
-
-        if (srcAspect > dstAspect) {
-          // Source is wider - fit to width, letterbox top/bottom
-          drawWidth = w;
-          drawHeight = w / srcAspect;
-          offsetX = 0;
-          offsetY = (h - drawHeight) / 2;
-        } else {
-          // Source is taller - fit to height, pillarbox left/right
-          drawHeight = h;
-          drawWidth = h * srcAspect;
-          offsetX = (w - drawWidth) / 2;
-          offsetY = 0;
-        }
-
-        popupCtx.drawImage(srcCanvas, offsetX, offsetY, drawWidth, drawHeight);
-
-        // Draw calibration overlay on popup if active
-        if (this.isProjectorCalibrating) {
-          this.drawProjectorCalibrationOverlay(popupCtx, w, h);
-        }
-      }
-    }
+    this.renderingPipeline.render();
+    // Draw projector calibration overlay after popup has copied content
+    this.renderingPipeline.drawProjectorCalibrationOverlay();
   }
 
   /**
@@ -597,9 +493,19 @@ export class AppController {
    * Toggle calibration mode
    */
   toggleCalibration() {
-    this.isCalibrating = !this.isCalibrating;
-    this.notifyStateChange('calibrating', this.isCalibrating);
-    return this.isCalibrating;
+    // Turn off projector calibration if on
+    if (this.projectorCalibration.isCalibrating) {
+      this.projectorCalibration.toggle();
+    }
+    return this.cameraCalibration.toggle();
+  }
+
+  /**
+   * Check if camera calibration is active
+   * @returns {boolean}
+   */
+  get isCalibrating() {
+    return this.cameraCalibration.isCalibrating;
   }
 
   /**
@@ -608,17 +514,9 @@ export class AppController {
    * @param {number} y - Click Y in debug canvas coordinates
    */
   selectCalibrationPoint(x, y) {
-    if (!this.isCalibrating) return -1;
-
-    // Scale to camera coordinates using display size (not canvas resolution)
-    const rect = this.debugCanvas.getBoundingClientRect();
-    const scaleX = this.camera.width / rect.width;
-    const scaleY = this.camera.height / rect.height;
-
-    const camX = x * scaleX;
-    const camY = y * scaleY;
-
-    return this.warping.findNearestPoint(camX, camY, 30);
+    return this.cameraCalibration.selectPoint(
+      x, y, this.debugCanvas, this.camera.width, this.camera.height
+    );
   }
 
   /**
@@ -628,30 +526,23 @@ export class AppController {
    * @param {number} y - New Y in debug canvas CSS coordinates
    */
   moveCalibrationPoint(pointIndex, x, y) {
-    if (pointIndex < 0) return;
-
-    // Scale to camera coordinates using display size (not canvas resolution)
-    const rect = this.debugCanvas.getBoundingClientRect();
-    const scaleX = this.camera.width / rect.width;
-    const scaleY = this.camera.height / rect.height;
-
-    this.warping.setSourcePoint(pointIndex, x * scaleX, y * scaleY);
+    this.cameraCalibration.movePoint(
+      pointIndex, x, y, this.debugCanvas, this.camera.width, this.camera.height
+    );
   }
 
   /**
-   * Save current calibration
+   * Save current camera calibration
    */
   saveCalibration() {
-    this.warping.save();
-    console.log('Calibration saved');
+    this.cameraCalibration.save();
   }
 
   /**
-   * Reset calibration to defaults
+   * Reset camera calibration to defaults
    */
   resetCalibration() {
-    this.warping.setSourceDimensions(this.camera.width, this.camera.height);
-    console.log('Calibration reset');
+    this.cameraCalibration.reset(this.camera.width, this.camera.height);
   }
 
   // =========================================
@@ -662,127 +553,54 @@ export class AppController {
    * Toggle projector calibration mode
    */
   toggleProjectorCalibration() {
-    this.isProjectorCalibrating = !this.isProjectorCalibrating;
-    if (this.isProjectorCalibrating) {
-      // Turn off camera calibration if on
-      this.isCalibrating = false;
+    // Turn off camera calibration if on
+    if (this.cameraCalibration.isCalibrating) {
+      this.cameraCalibration.toggle();
     }
-    this.notifyStateChange('projectorCalibrating', this.isProjectorCalibrating);
-    return this.isProjectorCalibrating;
+    return this.projectorCalibration.toggle();
   }
 
   /**
-   * Draw projector calibration overlay with draggable corners
-   * @param {CanvasRenderingContext2D} ctx - Canvas context to draw on
-   * @param {number} [width] - Canvas width (defaults to projectorCanvas)
-   * @param {number} [height] - Canvas height (defaults to projectorCanvas)
+   * Check if projector calibration is active
+   * @returns {boolean}
    */
-  drawProjectorCalibrationOverlay(ctx, width, height) {
-    const w = width || this.projectorCanvas.width;
-    const h = height || this.projectorCanvas.height;
-    const quad = this.settings.projectorQuad;
+  get isProjectorCalibrating() {
+    return this.projectorCalibration.isCalibrating;
+  }
 
-    // Convert normalized coords to pixels
-    const points = quad.map(p => ({
-      x: p.x * w,
-      y: p.y * h
-    }));
+  /**
+   * Get projector quad (for GUI compatibility)
+   * @returns {Array<{x: number, y: number}>}
+   */
+  get projectorQuad() {
+    return this.projectorCalibration.getQuad();
+  }
 
-    // Draw semi-transparent background
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    ctx.fillRect(0, 0, w, h);
+  /**
+   * Get selected projector point index
+   * @returns {number}
+   */
+  get projectorSelectedPoint() {
+    return this.projectorCalibration.selectedPoint;
+  }
 
-    // Draw the quad outline (white)
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    ctx.lineTo(points[1].x, points[1].y);
-    ctx.lineTo(points[2].x, points[2].y);
-    ctx.lineTo(points[3].x, points[3].y);
-    ctx.closePath();
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    // Draw diagonal lines for reference
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    ctx.lineTo(points[2].x, points[2].y);
-    ctx.moveTo(points[1].x, points[1].y);
-    ctx.lineTo(points[3].x, points[3].y);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    // Draw corner handles with colors (like original C++)
-    const colors = ['#FF0000', '#00FF00', '#0000FF', '#00FFFF']; // TL, TR, BR, BL
-    const labels = ['TL', 'TR', 'BR', 'BL'];
-    const handleRadius = 15;
-
-    points.forEach((p, i) => {
-      // Outer circle
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, handleRadius, 0, Math.PI * 2);
-      ctx.fillStyle = this.projectorSelectedPoint === i ? '#FFFF00' : colors[i];
-      ctx.fill();
-      ctx.strokeStyle = '#FFFFFF';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Label
-      ctx.fillStyle = '#000000';
-      ctx.font = 'bold 10px monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(labels[i], p.x, p.y);
-    });
-
-    // Instructions
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = '16px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Drag corners to adjust projection area', w / 2, 30);
-    ctx.fillText('Press P to exit, Ctrl+S to save', w / 2, 55);
+  /**
+   * Set selected projector point index
+   * @param {number} value
+   */
+  set projectorSelectedPoint(value) {
+    this.projectorCalibration.selectedPoint = value;
   }
 
   /**
    * Select projector calibration point at given coordinates
    * @param {number} clientX - Client X coordinate
    * @param {number} clientY - Client Y coordinate
-   * @param {HTMLCanvasElement} [canvas] - Optional canvas (defaults to projectorCanvas, use popup canvas when called from popup)
+   * @param {HTMLCanvasElement} [canvas] - Optional canvas
    */
   selectProjectorPoint(clientX, clientY, canvas) {
-    if (!this.isProjectorCalibrating) return -1;
-
-    // Use provided canvas or default to main projector canvas
     const targetCanvas = canvas || this.projectorCanvas;
-    const rect = targetCanvas.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-    const scaleX = targetCanvas.width / rect.width;
-    const scaleY = targetCanvas.height / rect.height;
-    const canvasX = x * scaleX;
-    const canvasY = y * scaleY;
-
-    const w = targetCanvas.width;
-    const h = targetCanvas.height;
-    const handleRadius = 30; // Larger for easier grabbing
-
-    // Find closest point within radius
-    let closestDist = handleRadius;
-    let closestIdx = -1;
-
-    this.settings.projectorQuad.forEach((p, i) => {
-      const px = p.x * w;
-      const py = p.y * h;
-      const dist = Math.sqrt((canvasX - px) ** 2 + (canvasY - py) ** 2);
-      if (dist < closestDist) {
-        closestDist = dist;
-        closestIdx = i;
-      }
-    });
-
-    this.projectorSelectedPoint = closestIdx;
-    return closestIdx;
+    return this.projectorCalibration.selectPoint(clientX, clientY, targetCanvas);
   }
 
   /**
@@ -790,82 +608,39 @@ export class AppController {
    * @param {number} pointIndex - Point index (0-3)
    * @param {number} clientX - Client X coordinate
    * @param {number} clientY - Client Y coordinate
-   * @param {HTMLCanvasElement} [canvas] - Optional canvas (defaults to projectorCanvas)
+   * @param {HTMLCanvasElement} [canvas] - Optional canvas
    */
   moveProjectorPoint(pointIndex, clientX, clientY, canvas) {
-    if (pointIndex < 0 || pointIndex >= 4) return;
-
-    // Use provided canvas or default to main projector canvas
     const targetCanvas = canvas || this.projectorCanvas;
-    const rect = targetCanvas.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-    const scaleX = targetCanvas.width / rect.width;
-    const scaleY = targetCanvas.height / rect.height;
-    const canvasX = x * scaleX;
-    const canvasY = y * scaleY;
-
-    // Store as normalized coordinates (0-1)
-    this.settings.projectorQuad[pointIndex] = {
-      x: Math.max(0, Math.min(1, canvasX / targetCanvas.width)),
-      y: Math.max(0, Math.min(1, canvasY / targetCanvas.height))
-    };
+    this.projectorCalibration.movePoint(pointIndex, clientX, clientY, targetCanvas);
   }
 
   /**
    * Save projector calibration to localStorage
    */
   saveProjectorCalibration() {
-    try {
-      localStorage.setItem('laserTag_projectorQuad', JSON.stringify(this.settings.projectorQuad));
-      console.log('Projector calibration saved');
-    } catch (e) {
-      console.error('Failed to save projector calibration:', e);
-    }
-  }
-
-  /**
-   * Load projector calibration from localStorage
-   */
-  loadProjectorCalibration() {
-    try {
-      const saved = localStorage.getItem('laserTag_projectorQuad');
-      if (saved) {
-        this.settings.projectorQuad = JSON.parse(saved);
-        console.log('Projector calibration loaded');
-      }
-    } catch (e) {
-      console.error('Failed to load projector calibration:', e);
-    }
+    this.projectorCalibration.save();
   }
 
   /**
    * Reset projector calibration to full canvas
    */
   resetProjectorCalibration() {
-    this.settings.projectorQuad = [
-      { x: 0, y: 0 },
-      { x: 1, y: 0 },
-      { x: 1, y: 1 },
-      { x: 0, y: 1 }
-    ];
-    console.log('Projector calibration reset');
+    this.projectorCalibration.reset();
   }
 
   /**
    * Clear the canvas
    */
   clearCanvas() {
-    for (const brush of this.brushes) {
-      brush.clear();
-    }
+    this.brushManager.clearAll();
   }
 
   /**
    * Undo last stroke on active brush
    */
   undo() {
-    this.getActiveBrush().undo();
+    this.brushManager.undo();
   }
 
   /**
@@ -873,13 +648,7 @@ export class AppController {
    * @param {string} hexColor - Hex color string
    */
   setBrushColor(hexColor) {
-    const r = parseInt(hexColor.slice(1, 3), 16);
-    const g = parseInt(hexColor.slice(3, 5), 16);
-    const b = parseInt(hexColor.slice(5, 7), 16);
-
-    for (const brush of this.brushes) {
-      brush.setColor(r, g, b);
-    }
+    this.brushManager.setColor(hexColor);
   }
 
   /**
@@ -887,9 +656,7 @@ export class AppController {
    * @param {number} width - Width in pixels
    */
   setBrushWidth(width) {
-    for (const brush of this.brushes) {
-      brush.setBrushWidth(width);
-    }
+    this.brushManager.setWidth(width);
   }
 
   /**
@@ -931,9 +698,6 @@ export class AppController {
     this.stop();
     this.camera.stop();
     this.tracker.dispose();
-
-    for (const brush of this.brushes) {
-      brush.dispose();
-    }
+    this.brushManager.dispose();
   }
 }

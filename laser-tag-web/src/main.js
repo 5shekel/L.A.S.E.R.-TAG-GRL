@@ -8,7 +8,6 @@
 
 import { AppController } from './app/AppController.js';
 import { TweakpaneGui } from './app/TweakpaneGui.js';
-// import { GuiManager } from './app/GuiManager.js';  // Legacy lil-gui
 
 // Global application state
 let app = null;
@@ -77,6 +76,10 @@ async function initApp() {
     // Set up state change callbacks
     app.onStateChange = handleStateChange;
 
+    // Sync initial status bar state (settings loaded before callback was set)
+    handleStateChange('mouseInput', app.useMouseInput);
+    handleStateChange('brush', app.getActiveBrush().name);
+
     // Hide loading overlay
     loadingOverlay.classList.add('hidden');
 
@@ -118,7 +121,6 @@ function setupEventListeners() {
     const y = e.clientY - rect.top;
 
     selectedPoint = app.selectCalibrationPoint(x, y);
-    app.warping.selectedPoint = selectedPoint;
   });
 
   debugCanvas.addEventListener('mousemove', (e) => {
@@ -132,16 +134,10 @@ function setupEventListeners() {
   });
 
   debugCanvas.addEventListener('mouseup', () => {
-    if (app) {
-      app.warping.selectedPoint = -1;
-    }
     selectedPoint = -1;
   });
 
   debugCanvas.addEventListener('mouseleave', () => {
-    if (app) {
-      app.warping.selectedPoint = -1;
-    }
     selectedPoint = -1;
   });
 
@@ -263,13 +259,12 @@ function handleKeyDown(e) {
       // Toggle mouse input mode
       const mouseMode = app.toggleMouseInput();
       console.log('Mouse input mode:', mouseMode ? 'ON' : 'OFF');
-      // Sync GUI checkbox (works with both TweakpaneGui and GuiManager)
+      // Sync GUI checkbox
       if (gui && gui.setMouseInputState) {
         gui.setMouseInputState(mouseMode);
       } else if (gui && gui.state) {
         gui.state.useMouseInput = mouseMode;
-        if (gui.pane) gui.pane.refresh();  // Tweakpane
-        else if (gui.gui) gui.gui.controllersRecursive().forEach(c => c.updateDisplay());  // lil-gui
+        if (gui.pane) gui.pane.refresh();
       }
       break;
 

@@ -344,6 +344,13 @@
       justify-content: center;
     }
 
+    .loading-overlay .logo {
+      max-width: 400px;
+      width: 80%;
+      margin-bottom: 24px;
+      opacity: 0.9;
+    }
+
     .loading-overlay h1 {
       font-size: 48px;
       font-weight: 300;
@@ -452,6 +459,7 @@
   <div id="loading-overlay" class="loading-overlay">
     <canvas id="bg-animation"></canvas>
     <div class="overlay-content">
+      <img src="grl_banner.jpg" alt="Graffiti Research Lab" class="logo">
       <h1>L.A.S.E.R. TAG</h1>
       <p>Browser-based laser graffiti system</p>
       <button id="start-button">START</button>

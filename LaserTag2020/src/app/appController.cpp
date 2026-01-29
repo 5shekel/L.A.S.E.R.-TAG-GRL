@@ -49,7 +49,7 @@ void appController::setup() {
     
     //////// MUSIC PLAYER ////
     trackPlayer.loadTracks(ofToDataPath("tunes/"));
-    
+
     setupListeners();
 }
 
@@ -589,34 +589,34 @@ void appController::drawProjector() {
 void appController::drawGUI() {
     ofPushStyle();
     ofSetColor(255, 255, 255);
-    
+
     noticeImg.draw(0, ofGetHeight()-noticeImg.getHeight()-16);
     ofPushMatrix();
     {
         ofTranslate(420, ofGetHeight()-noticeImg.getHeight()-twentyTwentyImg.getHeight()/2);
         ofRotateDeg(15);
         twentyTwentyImg.draw(0, 0);
-        
+
     }
     ofPopMatrix();
-    
+
     laserTracking.draw(noticeImg.getWidth(), 10);
-    
+
     ofPushMatrix();
     {
         ofTranslate(camera_panel->getWidth()+tracking_panel->getWidth(), brush_panel->getHeight()+drip_panel->getHeight());
         drawText("Colors tracked", 10, 23);
         laserTracking.drawColorRange(10, 29, 120, 44);
-        
+
         ofSetColor(255, 255, 255);
-        
+
         //put custom brush tool stuff here for your brush
         string brushName = "pngBrush";
         if (brushes[BRUSH_MODE]->getName() == brushName) {
             drawText("Current brush", 10, 97);
             brushes[BRUSH_MODE]->drawTool(10, 103, 32, 32);
         }
-        
+
         drawText("Brush color", 10, 159);
         colorManager.drawColorPanel(10, 164, 128, 24, 5);
     }
@@ -626,18 +626,18 @@ void appController::drawGUI() {
 
     //make sure we have a black background
     drawStatusMessage();
-    
+
     ofSetColor(0, 0, 0);
     drawText("fps: " + ofToString(ofGetFrameRate()), ofGetWindowWidth()-100, ofGetWindowHeight()-4);
-    
+
     if (webMovieLoaded) {
         ofSetColor(255, 255, 255);
         VP.draw(0, 0, ofGetWidth(), ofGetHeight());
     }
     ofSetColor(255, 255, 255);
     ofDrawBitmapString("Drag the second window to your projector screen and press F to go full screen\ns - saves\nr - loads\nd - clears screen\nspacebar - toggles checkerboard\nPlease reference the help guide for more information\n", noticeImg.getWidth()+10, ofGetHeight()-noticeImg.getHeight()-16);
-    
-    
+
+
     ofPopStyle();
 }
 

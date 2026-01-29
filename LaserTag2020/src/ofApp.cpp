@@ -54,7 +54,7 @@ void ofApp::mouseDragged(ofMouseEventArgs& mouse) {
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(ofMouseEventArgs& mouse) {
-	appCtrl.selectPoint(mouse.x,mouse.y);
+	appCtrl.selectPoint(mouse.x, mouse.y);
 }
 
 //--------------------------------------------------------------

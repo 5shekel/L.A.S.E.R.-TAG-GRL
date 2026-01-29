@@ -20,6 +20,7 @@ laserTracking::laserTracking() {
 
 	bCameraSetup = false;
 	bVideoSetup = false;
+	bCVSetup = false;
 	newStroke = true;
 	shouldClear = false;
 	noLaserCounter = 0;
@@ -154,12 +155,19 @@ void laserTracking::setupCV(string filePath) {
 
 	warpDst[3].x = 0;
 	warpDst[3].y = H;
+
+	bCVSetup = true;
 }
 
 //the heart of the beast - where we process 
 //the incoming frame and look for a laser
 //---------------------------		
 void laserTracking::processFrame(float hue, float hueThresh, float sat, float value, int minSize, int deadCount, float jumpDist) {
+	// Skip if CV not set up yet
+	if (!bCVSetup) {
+		return;
+	}
+
 	int t1, t2, t3, t4, t5;
 
 	int t0 = ofGetElapsedTimeMillis();
@@ -168,29 +176,32 @@ void laserTracking::processFrame(float hue, float hueThresh, float sat, float va
 	// Part 1 - get the video data
 	///////////////////////////////////////////////////////////
 
-	//pointer to our incoming video pixels			
+	//pointer to our incoming video pixels
 	ofPixels pixCam;
 	bool newFrame = false;
 	//either grab pixels from video or grab from camera
 	if (bVideoSetup) {
 		VP.update();
-		if (VP.isFrameNew()) {
-			newFrame = true;
+		if (VP.isFrameNew() && VP.isLoaded() && VP.getWidth() > 0) {
 			pixCam = VP.getPixels();
+			if (pixCam.isAllocated() && pixCam.getWidth() > 0) {
+				newFrame = true;
+			}
 		}
 	}
-	else {
+	else if (bCameraSetup) {
 		VG.update();
-		if (VG.isFrameNew()) {
-			newFrame = true;
+		if (VG.isFrameNew() && VG.isInitialized() && VG.getWidth() > 0) {
 			pixCam = VG.getPixels();
+			if (pixCam.isAllocated() && pixCam.getWidth() > 0) {
+				newFrame = true;
+			}
 		}
-
 	}
 
 
 
-	if (newFrame) {
+	if (newFrame && pixCam.getWidth() > 0 && pixCam.getHeight() > 0) {
 
 		///////////////////////////////////////////////////////////
 		// Part 2 - warp the video based on our quad
@@ -539,14 +550,20 @@ void laserTracking::calcColorRange(float hue, float hueThresh, float sat, float 
 }
 
 
-//---------------------------				
+//---------------------------
 void laserTracking::draw(float x, float y) {
 	ofPushMatrix();
 	ofTranslate(x, y);
     mouseOffset = ofVec2f(x, y);
 	//lets draw our openCV frames
 	//with a nice border around them
-	
+
+	// Skip drawing if CV images aren't allocated yet
+	if (!bCVSetup) {
+		ofPopMatrix();
+		return;
+	}
+
 	ofSetHexColor(0xFFFFFF);
 	ofFill();
 	VideoFrame.draw(0, 0, 320, 240);

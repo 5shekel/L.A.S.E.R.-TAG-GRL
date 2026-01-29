@@ -591,14 +591,15 @@ void appController::drawGUI() {
     ofSetColor(255, 255, 255);
 
     noticeImg.draw(0, ofGetHeight()-noticeImg.getHeight()-16);
-    ofPushMatrix();
-    {
-        ofTranslate(420, ofGetHeight()-noticeImg.getHeight()-twentyTwentyImg.getHeight()/2);
-        ofRotateDeg(15);
-        twentyTwentyImg.draw(0, 0);
-
+    if (twentyTwentyImg.isAllocated()) {
+        ofPushMatrix();
+        {
+            ofTranslate(420, ofGetHeight()-noticeImg.getHeight()-twentyTwentyImg.getHeight()/2);
+            ofRotateDeg(15);
+            twentyTwentyImg.draw(0, 0);
+        }
+        ofPopMatrix();
     }
-    ofPopMatrix();
 
     laserTracking.draw(noticeImg.getWidth(), 10);
 

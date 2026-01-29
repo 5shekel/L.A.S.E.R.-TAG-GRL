@@ -102,7 +102,7 @@ public:
     
     string sendStr;
     
-    bool bCameraSetup, bVideoSetup, newPos, newStroke, shouldClear;
+    bool bCameraSetup, bVideoSetup, bCVSetup, newPos, newStroke, shouldClear;
     
     int W;
     int H;

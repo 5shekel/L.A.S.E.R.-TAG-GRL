@@ -75,6 +75,7 @@ void graffLetter::setBrushWidth(int width){
 
 //----------------------------------------------
 void graffLetter::setupBrush(ofxCvGrayscaleImage &brush, int width){
+    if (width <= 0) return;
     brush.allocate(width, width);
 	unsigned char * temp = new unsigned char[width*width];
 	float midPt 	= (float)width/2.0f;
@@ -96,7 +97,7 @@ void graffLetter::setupBrush(ofxCvGrayscaleImage &brush, int width){
 
 //----------------------------------------------
 void graffLetter::setupShadowBrush(ofxCvGrayscaleImage &brush, int width){
-	
+	if (width <= 0) return;
 	brush.allocate(width,width);
 	unsigned char * temp = new unsigned char[width*width];
 	float midPt 	= (float)width/2.0f;

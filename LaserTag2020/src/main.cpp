@@ -1,11 +1,15 @@
 #include "ofMain.h"
 #include "ofApp.h"
 #include "ofAppGLFWWindow.h"
+#include "GLFW/glfw3.h"
 //========================================================================
 int main( ){
+	// Disable retina framebuffer - macOS will scale the window content 2x on HiDPI displays
+	glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_FALSE);
+
 	ofGLFWWindowSettings settings;
 	settings.setSize(1280, 800);
-	settings.resizable = true;
+	settings.resizable = false;
 	settings.numSamples = 4;  // Anti-aliasing
 	shared_ptr<ofAppBaseWindow> mainWindow = ofCreateWindow(settings);
 

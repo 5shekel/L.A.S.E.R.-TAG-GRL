@@ -112,3 +112,12 @@ Listed in `addons.make`:
 No automated test suite. Test using:
 - Live camera input
 - Test videos from `bin/data/videos/`
+
+## Context Management
+
+**IMPORTANT**: Monitor context usage during sessions. When context reaches 10%:
+1. `/create_handoff` - Save current work state
+2. `/compact` - Clear context
+3. `/resume_handoff` - Continue from saved state
+
+This ensures continuity across context limits.

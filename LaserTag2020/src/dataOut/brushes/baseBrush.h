@@ -42,10 +42,7 @@ public:
     virtual void clear(){};
     
     
-    virtual ofTexture & getTexture(){
-        ofTexture t;
-        return t;
-    }
+    virtual ofTexture & getTexture() = 0;
     
     //only for pixel brushes
     virtual unsigned char * getImageAsPixels(){

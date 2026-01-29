@@ -5,7 +5,8 @@
 int main( ){
 	ofGLFWWindowSettings settings;
 	settings.setSize(1280, 800);
-	settings.resizable = false;
+	settings.resizable = true;
+	settings.numSamples = 4;  // Anti-aliasing
 	shared_ptr<ofAppBaseWindow> mainWindow = ofCreateWindow(settings);
 
 	settings.setSize(1280, 720);
@@ -13,6 +14,7 @@ int main( ){
     settings.setPosition(glm::vec2(screenSize.x, screenSize.y/2-720/2));
 	settings.resizable = true;
 	settings.shareContextWith = mainWindow;
+	settings.numSamples = 4;
     
 	shared_ptr<ofAppBaseWindow> guiWindow = ofCreateWindow(settings);
 	guiWindow->setVerticalSync(false);

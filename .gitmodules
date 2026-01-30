@@ -1,10 +1,3 @@
-[submodule "LaserTag2020/local_addons/ofxGuiExtended"]
-	path = LaserTag2020/local_addons/ofxGuiExtended
-	url = https://github.com/LeonFedotov/ofxGuiExtended.git
-	branch = of-0.12-compatibility
-[submodule "LaserTag2020/local_addons/ofxCv"]
-	path = LaserTag2020/local_addons/ofxCv
-	url = https://github.com/kylemcdonald/ofxCv.git
 [submodule "laser-tag-2026/local_addons/ofxGuiExtended"]
 	path = laser-tag-2026/local_addons/ofxGuiExtended
 	url = https://github.com/LeonFedotov/ofxGuiExtended.git

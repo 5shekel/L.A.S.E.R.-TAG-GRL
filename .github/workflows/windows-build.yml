@@ -44,6 +44,7 @@ jobs:
             mingw-w64-x86_64-nlohmann-json
             mingw-w64-x86_64-rtaudio
             mingw-w64-x86_64-utf8cpp
+            mingw-w64-x86_64-glm
             make
             git
             unzip

@@ -24,29 +24,57 @@ open LaserTag2020.xcodeproj
 
 ## Build Status
 
-**✅ Builds successfully** with patched ofxGuiExtended addon. Patches applied to fix:
+**✅ Builds successfully** with openFrameworks 0.12.1 and patched ofxGuiExtended addon.
+
+### Patches Applied (ofxGuiExtended)
 - C++ template two-phase lookup (added `this->` prefix for dependent name lookup)
 - OF 0.12 API changes (`ofPath.setFillColor()` now requires `ofFloatColor`)
+- C++20 idiomatic `file_clock::to_sys()` for filesystem time conversion
 - Missing `std::` prefix on `noskipws`
-- Project code: made `baseBrush::getTexture()` pure virtual
+- Added missing includes (`ofPath.h`, `ofVboMesh.h`)
+
+### Patches Applied (LaserTag2020)
+- Made `baseBrush::getTexture()` pure virtual
 
 ## First-Time Setup
 
-openFrameworks and third-party addons are not in git. Install them:
+### 1. Clone with Submodules
 
 ```bash
-# 1. Download openFrameworks (nightly or 0.12.1)
-mkdir -p lib && cd lib
-curl -LO https://github.com/openframeworks/openFrameworks/releases/download/nightly/of_v<DATE>_osx_release.tar.gz
-tar -xzf of_v<DATE>_osx_release.tar.gz && rm of_v<DATE>_osx_release.tar.gz
-
-# 2. Install third-party addons
-cd of_v<DATE>_osx_release/addons
-git clone https://github.com/frauzufall/ofxGuiExtended.git
-git clone https://github.com/kylemcdonald/ofxCv.git
+git clone --recursive https://github.com/LeonFedotov/grl-laser-tag.git
+cd grl-laser-tag/LaserTag2020
 ```
 
-**OF path**: Configured in `config.make` via `OF_ROOT`.
+If already cloned without `--recursive`:
+```bash
+git submodule update --init --recursive
+```
+
+### 2. Download openFrameworks 0.12.1
+
+```bash
+cd LaserTag2020
+mkdir -p lib && cd lib
+curl -LO https://github.com/openframeworks/openFrameworks/releases/download/0.12.1/of_v0.12.1_osx_release.tar.gz
+tar -xzf of_v0.12.1_osx_release.tar.gz && rm of_v0.12.1_osx_release.tar.gz
+cd ..
+```
+
+### 3. Build
+
+```bash
+make -j16
+```
+
+## Version Pinning
+
+| Component | Version | Source |
+|-----------|---------|--------|
+| openFrameworks | **0.12.1** | [GitHub Release](https://github.com/openframeworks/openFrameworks/releases/tag/0.12.1) |
+| ofxGuiExtended | `of-0.12-compatibility` branch | [LeonFedotov/ofxGuiExtended](https://github.com/LeonFedotov/ofxGuiExtended/tree/of-0.12-compatibility) (submodule) |
+| ofxCv | master | [kylemcdonald/ofxCv](https://github.com/kylemcdonald/ofxCv) (submodule) |
+
+**OF path**: Configured in `config.make` via `OF_ROOT = lib/of_v0.12.1_osx_release`.
 
 ## Running
 

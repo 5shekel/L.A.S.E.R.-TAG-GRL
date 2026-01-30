@@ -7,7 +7,8 @@ swimmingMachine::swimmingMachine(){
 	maxNumStrokes 	= 7;
 	nStrokes		= 0;
 	angle = new swimStroke[	maxNumStrokes ];
-	
+	lastFittedPts	= 0;
+
 }
 
 
@@ -18,10 +19,12 @@ void swimmingMachine::setup(){
 
 //-------------------------------------------------------------------------
 void swimmingMachine::update(){
-	if (stroke.nPts > 3){
-		angle[nStrokes].fitToVec3fs (stroke.resampled, stroke.nMaximumPts, 500);
+	// Only recompute fitToVec3fs when stroke has new points (was called every frame!)
+	if (stroke.nPts > 3 && stroke.nPts != lastFittedPts){
+		angle[nStrokes].fitToVec3fs(stroke.resampled, stroke.nMaximumPts, 500);
+		lastFittedPts = stroke.nPts;
 	}
-	
+
 	for (int i =0; i < maxNumStrokes; i++){
 		angle[i].update();
 	}
@@ -46,6 +49,7 @@ void swimmingMachine::clear(){
 	for (int i =0; i < maxNumStrokes; i++){
 		angle[i].clear();
 	}
+	lastFittedPts = 0;
 }
 
 
@@ -63,6 +67,7 @@ void swimmingMachine::mouseDragged(int x, int y, float button){
 //--------------------------------------------------------------
 void swimmingMachine::mousePressed(int x, int y, float button){
 	stroke.nPts = 0;
+	lastFittedPts = 0;  // Reset so new stroke will trigger fitToVec3fs
 	angle[nStrokes].bSwim = false;
 }
 
@@ -72,4 +77,5 @@ void swimmingMachine::mouseReleased(){
 	nStrokes++;
 	nStrokes %= 7;
 	stroke.nPts = 0;
+	lastFittedPts = 0;  // Reset for next stroke
 }

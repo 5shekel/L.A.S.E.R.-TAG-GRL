@@ -2,15 +2,11 @@
 #define _TRACK_PLAYER_
 
 #include "ofMain.h"
-#include <sys/types.h>
-#include <signal.h>
 
-// Audio player using separate process (afplay) to avoid AVFoundation conflicts
 class trackPlayer{
 public:
 
     trackPlayer();
-    ~trackPlayer();
 
     int 	loadTracks(string directoryPath);
     bool 	playTrack(int _whichTrack);
@@ -31,15 +27,9 @@ public:
 protected:
     int  numTracks, whichTrack;
     float targetPitch, updatePct, currentPitch;
-    int currentVolume;
-    bool isPaused;
-    float playStartTime;  // Time when playback started (for race condition prevention)
 
     ofDirectory DLIST;
-    pid_t audioProcessPid;  // PID of afplay subprocess
-
-    void killAudioProcess();
-    void spawnAudioProcess(const string& filepath);
+    ofSoundPlayer track;
 };
 
 #endif

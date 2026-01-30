@@ -16,6 +16,7 @@ int main( ){
 	settings.resizable = true;
 	settings.numSamples = 4;  // Anti-aliasing
 	shared_ptr<ofAppBaseWindow> mainWindow = ofCreateWindow(settings);
+	mainWindow->setVerticalSync(false);  // Disable vsync on main window too
 
 	settings.setSize(1280, 720);
     glm::vec2 screenSize = mainWindow.get()->getScreenSize();

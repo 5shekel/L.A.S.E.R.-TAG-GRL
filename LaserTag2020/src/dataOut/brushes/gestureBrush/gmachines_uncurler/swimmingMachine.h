@@ -30,7 +30,8 @@ class swimmingMachine {
 		int 		nStrokes;
 		swimStroke	* angle;
 		maxStroke 	stroke;
-		
+		int			lastFittedPts;  // Track when stroke changes to avoid per-frame recomputation
+
 };
 
 #endif	

@@ -177,6 +177,8 @@ void laserTracking::processFrame(float hue, float hueThresh, float sat, float va
 	// Part 1 - get the video data
 	///////////////////////////////////////////////////////////
 
+	float frameStartTime = ofGetElapsedTimef();
+
 	//pointer to our incoming video pixels
 	ofPixels pixCam;
 	bool newFrame = false;
@@ -435,6 +437,12 @@ void laserTracking::processFrame(float hue, float hueThresh, float sat, float va
             stroke.clear();
 
 		}
+	}
+
+	// Debug timing - log slow frames (>50ms)
+	float frameTime = (ofGetElapsedTimef() - frameStartTime) * 1000.0f;
+	if(frameTime > 50.0f){
+		ofLogWarning("laserTracking") << "SLOW FRAME: " << frameTime << "ms";
 	}
 }
 

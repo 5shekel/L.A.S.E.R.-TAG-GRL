@@ -256,19 +256,24 @@ void appController::clearProjectedImage() {
 
 //----------------------------------------------------
 void appController::mainLoop() {
-    
+
+    float loopStart = ofGetElapsedTimef();
+    float t0;
+
     if(bSetupCamera){
         setupCamera();
         bSetupCamera = false;
     }
-    
+
     if(bSetupVideo){
         setupVideo();
         bSetupVideo = false;
     }
-    
+
     //lets find dat laser!
+    t0 = ofGetElapsedTimef();
     trackLaser();
+    float trackTime = (ofGetElapsedTimef() - t0) * 1000.0f;
     
     //if sending data is enabled
     //then lets send our data!
@@ -278,22 +283,33 @@ void appController::mainLoop() {
     //this deals with telling our brushes
     //all about the settings that are being
     //changed
+    t0 = ofGetElapsedTimef();
     manageMusic();
-    
+    float musicTime = (ofGetElapsedTimef() - t0) * 1000.0f;
+
     //this is where we paint
+    t0 = ofGetElapsedTimef();
     managePainting();
-    
+    float paintTime = (ofGetElapsedTimef() - t0) * 1000.0f;
+
     //if you have a crazy bright projector
     //and a weak laser - you might need to dim the
     //projector - this method is for raster brushes
     //for gl brushes we do it in updateBrushSettings
     imageProjection.setProjectionBrightness(PROJ_BRIGHTNESS);
-    
+
     //this is for the singlescreen mode
     //it will show the current setting for a few seconds
     if (ofGetElapsedTimeMillis() - keyTimer > STATUS_SHOW_TIME)keyTimer = 0;
-    
+
+    // Note: VP.update() is already called in laserTracking - this may be redundant
     if (webMovieLoaded)VP.update();
+
+    // Log slow frames (>50ms total)
+    float loopTime = (ofGetElapsedTimef() - loopStart) * 1000.0f;
+    if(loopTime > 50.0f){
+        ofLogWarning("mainLoop") << "SLOW LOOP: " << loopTime << "ms (track:" << trackTime << " music:" << musicTime << " paint:" << paintTime << ")";
+    }
 }
 
 
@@ -365,13 +381,13 @@ void appController::onTrackChange(int& i) {
 }
 //----------------------------------------------------
 void appController::manageMusic() {
-    
+
     ///////////////////////////////////////////////////////////
     // our music player :)
     ///////////////////////////////////////////////////////////
-    
+
     int whichTrack = TRACK;
-    
+
     if (MUSIC) {
         trackPlayer.unPause();
         trackPlayer.setVolume(VOL);
@@ -379,24 +395,21 @@ void appController::manageMusic() {
     else {
         trackPlayer.pause();
     }
-    
-    
+
     if (TRACK != trackPlayer.getCurrentTrackNo()) {
         if (TRACK >= trackPlayer.getNumTracks()) {
             TRACK = 0;
         }
-        whichTrack = TRACK;
-        trackPlayer.playTrack(TRACK);
+        trackPlayer.playTrack(whichTrack);
         setCommonText("Playing: " + ofToString(trackPlayer.getCurrentTrackNo()) + " " + trackPlayer.getCurrentTrackName());
     }
-    
+
     if (trackPlayer.getFinished()) {
         whichTrack = trackPlayer.nextTrack();
         setCommonText("Playing: " + ofToString(trackPlayer.getCurrentTrackNo()) + " " + trackPlayer.getCurrentTrackName());
         TRACK = whichTrack;
     }
     trackPlayer.setVolume(VOL);
-    
 }
 
 //----------------------------------------------------
@@ -419,49 +432,51 @@ void appController::updateBrushSettings(bool first) {
 
 //----------------------------------------------------
 void appController::managePainting() {
-    
+
     //time to paint!
     //but only if we have got data
     if (laserTracking.newData()) {
-        
+
         float laserX = laserTracking.laserX;
         float laserY = laserTracking.laserY;
-        
+
         //if our brush is a vector brush we need
         //to warp the coords as we are not
         //texture warping
         if (brushes[BRUSH_MODE]->getIsVector()) {
             laserTracking.getWarpedCoordinates(imageProjection.getQuadPoints(), &laserX, &laserY);
         }
+
         brushes[BRUSH_MODE]->addPoint(laserX, laserY, laserTracking.isStrokeNew());
-        
+
         laserTracking.clearNewStroke();
     }
-    
+
     //idle our current brush
     for (int i = 0; i < NUM_BRUSHES; i++) {
         if (i == BRUSH_MODE) {
             brushes[i]->update();
-            
+
             //we need to update our brush style
             //as some brushes have different number
             //of brush styles
-            
+
             BRUSH_NO = brushes[i]->getBrushNumber();
         }
     }
-    
+
     //lets tell people which mode they are in
-    
+
     setCommonText("brush: " + brushes[BRUSH_MODE]->getName() + " - " + brushes[BRUSH_MODE]->getDescription());
-    
-    
+
+
     if (brushes[BRUSH_MODE]->getIsColor()) {
         imageProjection.setColorTexture(brushes[BRUSH_MODE]->getTexture());
     }
     else {
         imageProjection.setGrayTexture(brushes[BRUSH_MODE]->getTexture());
     }
+
 }
 
 //----------------------------------------------------

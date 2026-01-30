@@ -133,11 +133,14 @@ jobs:
           Get-Content "$projectPath\addons.make"
 
           if (Test-Path $pgPath) {
-            Write-Host "Running Project Generator..."
-            # Use update flag with full path
-            & $pgPath --ofPath="C:\of" --platforms="vs" --update $projectPath
+            Write-Host "Running Project Generator on: $projectPath"
+            # Use explicit path with quotes
+            $args = @("--ofPath=C:\of", "--platforms=vs", $projectPath)
+            Write-Host "PG args: $args"
+            & $pgPath $args
+            $exitCode = $LASTEXITCODE
 
-            Write-Host "Project Generator exit code: $LASTEXITCODE"
+            Write-Host "Project Generator exit code: $exitCode"
             Write-Host "After PG, project files:"
             Get-ChildItem $projectPath -Filter "*.vcxproj"
             Get-ChildItem $projectPath

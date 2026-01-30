@@ -107,6 +107,24 @@ jobs:
             exit 1
           }
 
+      - name: Fix include paths for nested source structure
+        shell: powershell
+        run: |
+          cd C:\of\apps\myApps\LaserTag2020
+
+          # OF Project Generator doesn't handle nested src/ directories well
+          # We need to add include paths for src/app, src/dataIn, src/dataOut, src/utils
+          $vcxproj = Get-Content "LaserTag2020.vcxproj" -Raw
+
+          # Find existing AdditionalIncludeDirectories and add our paths
+          $srcDirs = "src\app;src\dataIn;src\dataOut;src\utils;"
+
+          # Add to both Debug and Release configs
+          $vcxproj = $vcxproj -replace '(<AdditionalIncludeDirectories>)', "`$1$srcDirs"
+
+          Set-Content "LaserTag2020.vcxproj" $vcxproj
+          Write-Host "Added include paths for nested source directories"
+
       - name: Build LaserTag2020
         shell: powershell
         run: |

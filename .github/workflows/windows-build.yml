@@ -25,7 +25,21 @@ jobs:
           install: >-
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-make
-            mingw-w64-x86_64-pkg-config
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-cairo
+            mingw-w64-x86_64-freeglut
+            mingw-w64-x86_64-glew
+            mingw-w64-x86_64-glfw
+            mingw-w64-x86_64-FreeImage
+            mingw-w64-x86_64-assimp
+            mingw-w64-x86_64-boost
+            mingw-w64-x86_64-poco
+            mingw-w64-x86_64-openal
+            mingw-w64-x86_64-libsndfile
+            mingw-w64-x86_64-opencv
+            mingw-w64-x86_64-pugixml
+            mingw-w64-x86_64-uriparser
+            mingw-w64-x86_64-curl
             make
             git
             unzip

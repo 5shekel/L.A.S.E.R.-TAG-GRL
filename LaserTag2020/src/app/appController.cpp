@@ -87,7 +87,7 @@ void appController::setupCamera(){
 }
 
 void appController::setupVideo(){
-    laserTracking.setupVideo("videos/lasertag-IR-trackLaser.mp4");
+    laserTracking.setupVideo("videos/lasertag_test_converted.mp4");
     laserTracking.setupCV(ofToDataPath("settings/quad.xml"));
 }
 

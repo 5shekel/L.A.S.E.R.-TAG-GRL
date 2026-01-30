@@ -41,8 +41,8 @@ open LaserTag2020.xcodeproj
 ### 1. Clone with Submodules
 
 ```bash
-git clone --recursive https://github.com/LeonFedotov/grl-laser-tag.git
-cd grl-laser-tag/LaserTag2020
+git clone --recursive https://github.com/LeonFedotov/L.A.S.E.R.-TAG-GRL.git
+cd L.A.S.E.R.-TAG-GRL/LaserTag2020
 ```
 
 If already cloned without `--recursive`:
@@ -53,7 +53,6 @@ git submodule update --init --recursive
 ### 2. Download openFrameworks 0.12.1
 
 ```bash
-cd LaserTag2020
 mkdir -p lib && cd lib
 curl -LO https://github.com/openframeworks/openFrameworks/releases/download/0.12.1/of_v0.12.1_osx_release.tar.gz
 tar -xzf of_v0.12.1_osx_release.tar.gz && rm of_v0.12.1_osx_release.tar.gz
@@ -64,6 +63,17 @@ cd ..
 
 ```bash
 make -j16
+```
+
+### Quick Copy-Paste Setup
+
+```bash
+git clone --recursive https://github.com/LeonFedotov/L.A.S.E.R.-TAG-GRL.git && \
+cd L.A.S.E.R.-TAG-GRL/LaserTag2020 && \
+mkdir -p lib && cd lib && \
+curl -LO https://github.com/openframeworks/openFrameworks/releases/download/0.12.1/of_v0.12.1_osx_release.tar.gz && \
+tar -xzf of_v0.12.1_osx_release.tar.gz && rm of_v0.12.1_osx_release.tar.gz && \
+cd .. && make -j16
 ```
 
 ## Version Pinning

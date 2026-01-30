@@ -30,7 +30,7 @@ jobs:
             mingw-w64-x86_64-freeglut
             mingw-w64-x86_64-glew
             mingw-w64-x86_64-glfw
-            mingw-w64-x86_64-FreeImage
+            mingw-w64-x86_64-freeimage
             mingw-w64-x86_64-assimp
             mingw-w64-x86_64-boost
             mingw-w64-x86_64-poco

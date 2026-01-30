@@ -134,12 +134,13 @@ jobs:
 
           if (Test-Path $pgPath) {
             Write-Host "Running Project Generator..."
-            # Run from project directory with verbose output
-            cd $projectPath
-            & $pgPath --ofPath="C:\of" --verbose .
+            # Use update flag with full path
+            & $pgPath --ofPath="C:\of" --platforms="vs" --update $projectPath
 
+            Write-Host "Project Generator exit code: $LASTEXITCODE"
             Write-Host "After PG, project files:"
             Get-ChildItem $projectPath -Filter "*.vcxproj"
+            Get-ChildItem $projectPath
           } else {
             Write-Host "ERROR: Project Generator not found"
             Get-ChildItem "C:\of" -Directory | Select-Object Name

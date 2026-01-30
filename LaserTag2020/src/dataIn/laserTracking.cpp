@@ -88,6 +88,7 @@ void laserTracking::setupCamera(int deviceNumber, int width, int height) {
 //---------------------------		
 void laserTracking::setupVideo(string videoPath) {
 	VP.load(videoPath);
+	VP.setVolume(0.0f);  // Mute video to prevent audio hardware conflict
 	VP.play();
 	VP.setUseTexture(true);
 	W = VP.getWidth();

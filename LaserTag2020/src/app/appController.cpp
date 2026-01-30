@@ -382,11 +382,11 @@ void appController::manageMusic() {
     
     
     if (TRACK != trackPlayer.getCurrentTrackNo()) {
-        
         if (TRACK >= trackPlayer.getNumTracks()) {
             TRACK = 0;
         }
-        trackPlayer.playTrack(whichTrack);
+        whichTrack = TRACK;
+        trackPlayer.playTrack(TRACK);
         setCommonText("Playing: " + ofToString(trackPlayer.getCurrentTrackNo()) + " " + trackPlayer.getCurrentTrackName());
     }
     

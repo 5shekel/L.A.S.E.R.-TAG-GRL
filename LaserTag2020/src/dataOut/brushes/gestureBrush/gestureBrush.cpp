@@ -91,38 +91,43 @@ void gestureBrush::clear(){
 		
 //-----------------------------------------------
 void gestureBrush::addPoint(float x1, float y1, bool newStroke){
+		
 	x1 *= (float)width;
 	y1 *= (float)height;
-
+		
 	if(newStroke){
 		newLetter();
 		oldX = x1;
 		oldY = y1;
 		xSmooth = x1;
-		ySmooth = y1;
+		ySmooth = y1; 
 	} else {
 		xSmooth = xSmooth * 0.3f + 0.7f * x1;
 		ySmooth = ySmooth * 0.3f + 0.7f * y1;
 	}
-
+	
 	addLine(xSmooth, ySmooth, oldX, oldY);
-
+		
 	oldX = xSmooth;
 	oldY = ySmooth;
+	
 }
 
 //----------------------------------------------
 void gestureBrush::addLine(float x1, float y1, float x2, float y2){
+	
 	float vel = sqrt((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2));
 	velSmooth = 0.95f * velSmooth + (0.05)*(1 + vel);
-
+	
 	if (bNew == true){
 		sm.mouseDragged(x1, y1, velSmooth);
+		
 		bNew = false;
 	}
-
+	
 	sm.mouseDragged(x2, y2, velSmooth);
 	nFramesSinceAdded = 0;
+		
 }
 
 

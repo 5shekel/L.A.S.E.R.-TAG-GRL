@@ -5,9 +5,9 @@
 
 class trackPlayer{
 public:
-
+    
     trackPlayer();
-
+    
     int 	loadTracks(string directoryPath);
     bool 	playTrack(int _whichTrack);
     string 	getCurrentTrackName();
@@ -23,11 +23,11 @@ public:
     void 	updatePitch(float pct);
     void 	shiftPos(float posAdj);
     void    stop();
-
+    
 protected:
     int  numTracks, whichTrack;
     float targetPitch, updatePct, currentPitch;
-
+    
     ofDirectory DLIST;
     ofSoundPlayer track;
 };

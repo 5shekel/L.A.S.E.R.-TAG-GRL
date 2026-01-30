@@ -1,12 +1,5 @@
 #include "appController.h"
 
-// Logical window dimensions for UI scaling
-static const int LOGICAL_WIDTH = 1280;
-static const int LOGICAL_HEIGHT = 800;
-
-// Status bar font (larger for visibility)
-static ofTrueTypeFont statusBarFont;
-
 //---------------------------------------------------
 appController::appController() {
     
@@ -25,10 +18,9 @@ void appController::setup() {
     BRUSH_MODE = 0;
     bSetupCamera = false;
     bSetupVideo = false;
+    
 
-    // Load status bar font (14pt for visibility at 2x scale)
-    statusBarFont.load("fonts/cour.ttf", 14);
-
+    
     loadSettings();
     
     setupProjections();
@@ -57,7 +49,7 @@ void appController::setup() {
     
     //////// MUSIC PLAYER ////
     trackPlayer.loadTracks(ofToDataPath("tunes/"));
-
+    
     setupListeners();
 }
 
@@ -87,7 +79,7 @@ void appController::setupCamera(){
 }
 
 void appController::setupVideo(){
-    laserTracking.setupVideo("videos/lasertag_test_converted.mp4");
+    laserTracking.setupVideo("videos/lasertag-IR-trackLaser.mp4");
     laserTracking.setupCV(ofToDataPath("settings/quad.xml"));
 }
 
@@ -115,7 +107,7 @@ void appController::onEnableNetwork(bool& b) {
 //lets read some xml!
 //----------------------------------------------------
 void appController::loadSettings() {
-
+    
     BRUSH_SETTINGS.setName("Brush Settings");
     BRUSH_SETTINGS.add(BRUSH_MODE.set("Brush mode", 0, 0, NUM_BRUSHES-1));
     BRUSH_SETTINGS.add(BRUSH_WIDTH.set("Brush width", 4, 2, 128));
@@ -201,7 +193,7 @@ void appController::loadSettings() {
     network_panel->loadFromFile(ofToDataPath("settings/network_settings.xml"));
     music_panel->loadFromFile(ofToDataPath("settings/music_settings.xml"));
     camera_panel->loadFromFile(ofToDataPath("settings/camera_settings.xml"));
-
+    
     positionGui();
 }
 
@@ -256,24 +248,19 @@ void appController::clearProjectedImage() {
 
 //----------------------------------------------------
 void appController::mainLoop() {
-
-    float loopStart = ofGetElapsedTimef();
-    float t0;
-
+    
     if(bSetupCamera){
         setupCamera();
         bSetupCamera = false;
     }
-
+    
     if(bSetupVideo){
         setupVideo();
         bSetupVideo = false;
     }
-
+    
     //lets find dat laser!
-    t0 = ofGetElapsedTimef();
     trackLaser();
-    float trackTime = (ofGetElapsedTimef() - t0) * 1000.0f;
     
     //if sending data is enabled
     //then lets send our data!
@@ -283,33 +270,22 @@ void appController::mainLoop() {
     //this deals with telling our brushes
     //all about the settings that are being
     //changed
-    t0 = ofGetElapsedTimef();
     manageMusic();
-    float musicTime = (ofGetElapsedTimef() - t0) * 1000.0f;
-
+    
     //this is where we paint
-    t0 = ofGetElapsedTimef();
     managePainting();
-    float paintTime = (ofGetElapsedTimef() - t0) * 1000.0f;
-
+    
     //if you have a crazy bright projector
     //and a weak laser - you might need to dim the
     //projector - this method is for raster brushes
     //for gl brushes we do it in updateBrushSettings
     imageProjection.setProjectionBrightness(PROJ_BRIGHTNESS);
-
+    
     //this is for the singlescreen mode
     //it will show the current setting for a few seconds
     if (ofGetElapsedTimeMillis() - keyTimer > STATUS_SHOW_TIME)keyTimer = 0;
-
-    // Note: VP.update() is already called in laserTracking - this may be redundant
+    
     if (webMovieLoaded)VP.update();
-
-    // Log slow frames (>50ms total)
-    float loopTime = (ofGetElapsedTimef() - loopStart) * 1000.0f;
-    if(loopTime > 50.0f){
-        ofLogWarning("mainLoop") << "SLOW LOOP: " << loopTime << "ms (track:" << trackTime << " music:" << musicTime << " paint:" << paintTime << ")";
-    }
 }
 
 
@@ -381,13 +357,13 @@ void appController::onTrackChange(int& i) {
 }
 //----------------------------------------------------
 void appController::manageMusic() {
-
+    
     ///////////////////////////////////////////////////////////
     // our music player :)
     ///////////////////////////////////////////////////////////
-
+    
     int whichTrack = TRACK;
-
+    
     if (MUSIC) {
         trackPlayer.unPause();
         trackPlayer.setVolume(VOL);
@@ -395,21 +371,24 @@ void appController::manageMusic() {
     else {
         trackPlayer.pause();
     }
-
+    
+    
     if (TRACK != trackPlayer.getCurrentTrackNo()) {
+        
         if (TRACK >= trackPlayer.getNumTracks()) {
             TRACK = 0;
         }
         trackPlayer.playTrack(whichTrack);
         setCommonText("Playing: " + ofToString(trackPlayer.getCurrentTrackNo()) + " " + trackPlayer.getCurrentTrackName());
     }
-
+    
     if (trackPlayer.getFinished()) {
         whichTrack = trackPlayer.nextTrack();
         setCommonText("Playing: " + ofToString(trackPlayer.getCurrentTrackNo()) + " " + trackPlayer.getCurrentTrackName());
         TRACK = whichTrack;
     }
     trackPlayer.setVolume(VOL);
+    
 }
 
 //----------------------------------------------------
@@ -432,51 +411,49 @@ void appController::updateBrushSettings(bool first) {
 
 //----------------------------------------------------
 void appController::managePainting() {
-
+    
     //time to paint!
     //but only if we have got data
     if (laserTracking.newData()) {
-
+        
         float laserX = laserTracking.laserX;
         float laserY = laserTracking.laserY;
-
+        
         //if our brush is a vector brush we need
         //to warp the coords as we are not
         //texture warping
         if (brushes[BRUSH_MODE]->getIsVector()) {
             laserTracking.getWarpedCoordinates(imageProjection.getQuadPoints(), &laserX, &laserY);
         }
-
         brushes[BRUSH_MODE]->addPoint(laserX, laserY, laserTracking.isStrokeNew());
-
+        
         laserTracking.clearNewStroke();
     }
-
+    
     //idle our current brush
     for (int i = 0; i < NUM_BRUSHES; i++) {
         if (i == BRUSH_MODE) {
             brushes[i]->update();
-
+            
             //we need to update our brush style
             //as some brushes have different number
             //of brush styles
-
+            
             BRUSH_NO = brushes[i]->getBrushNumber();
         }
     }
-
+    
     //lets tell people which mode they are in
-
+    
     setCommonText("brush: " + brushes[BRUSH_MODE]->getName() + " - " + brushes[BRUSH_MODE]->getDescription());
-
-
+    
+    
     if (brushes[BRUSH_MODE]->getIsColor()) {
         imageProjection.setColorTexture(brushes[BRUSH_MODE]->getTexture());
     }
     else {
         imageProjection.setGrayTexture(brushes[BRUSH_MODE]->getTexture());
     }
-
 }
 
 //----------------------------------------------------
@@ -612,35 +589,34 @@ void appController::drawProjector() {
 void appController::drawGUI() {
     ofPushStyle();
     ofSetColor(255, 255, 255);
-
-    noticeImg.draw(0, LOGICAL_HEIGHT-noticeImg.getHeight()-16);
-    if (twentyTwentyImg.isAllocated()) {
-        ofPushMatrix();
-        {
-            ofTranslate(420, LOGICAL_HEIGHT-noticeImg.getHeight()-twentyTwentyImg.getHeight()/2);
-            ofRotateDeg(15);
-            twentyTwentyImg.draw(0, 0);
-        }
-        ofPopMatrix();
+    
+    noticeImg.draw(0, ofGetHeight()-noticeImg.getHeight()-16);
+    ofPushMatrix();
+    {
+        ofTranslate(420, ofGetHeight()-noticeImg.getHeight()-twentyTwentyImg.getHeight()/2);
+        ofRotateDeg(15);
+        twentyTwentyImg.draw(0, 0);
+        
     }
-
+    ofPopMatrix();
+    
     laserTracking.draw(noticeImg.getWidth(), 10);
-
+    
     ofPushMatrix();
     {
         ofTranslate(camera_panel->getWidth()+tracking_panel->getWidth(), brush_panel->getHeight()+drip_panel->getHeight());
         drawText("Colors tracked", 10, 23);
         laserTracking.drawColorRange(10, 29, 120, 44);
-
+        
         ofSetColor(255, 255, 255);
-
+        
         //put custom brush tool stuff here for your brush
         string brushName = "pngBrush";
         if (brushes[BRUSH_MODE]->getName() == brushName) {
             drawText("Current brush", 10, 97);
             brushes[BRUSH_MODE]->drawTool(10, 103, 32, 32);
         }
-
+        
         drawText("Brush color", 10, 159);
         colorManager.drawColorPanel(10, 164, 128, 24, 5);
     }
@@ -650,18 +626,18 @@ void appController::drawGUI() {
 
     //make sure we have a black background
     drawStatusMessage();
-
+    
     ofSetColor(0, 0, 0);
     drawText("fps: " + ofToString(ofGetFrameRate()), ofGetWindowWidth()-100, ofGetWindowHeight()-4);
-
+    
     if (webMovieLoaded) {
         ofSetColor(255, 255, 255);
-        VP.draw(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+        VP.draw(0, 0, ofGetWidth(), ofGetHeight());
     }
     ofSetColor(255, 255, 255);
-    ofDrawBitmapString("Drag the second window to your projector screen and press F to go full screen\ns - saves\nr - loads\nd - clears screen\nspacebar - toggles checkerboard\nPlease reference the help guide for more information\n", noticeImg.getWidth()+10, LOGICAL_HEIGHT-noticeImg.getHeight()-16);
-
-
+    ofDrawBitmapString("Drag the second window to your projector screen and press F to go full screen\ns - saves\nr - loads\nd - clears screen\nspacebar - toggles checkerboard\nPlease reference the help guide for more information\n", noticeImg.getWidth()+10, ofGetHeight()-noticeImg.getHeight()-16);
+    
+    
     ofPopStyle();
 }
 
@@ -718,13 +694,11 @@ void appController::drawStatusMessage() {
             setFade(txtFade);
         }
         
-        // Dark background bar (24px for 14pt font)
-        ofSetColor(0, 0, 0, txtFade);
-        ofDrawRectangle(0, LOGICAL_HEIGHT-24, LOGICAL_WIDTH, 24);
-
-        // White text using TrueType font for proper scaling
-        ofSetColor(255, 255, 255, txtFade);
-        statusBarFont.drawString(getCommonText(), 8, LOGICAL_HEIGHT-6);
+        ofSetColor(txtFade * 2, txtFade * 2, txtFade * 2);
+        ofDrawRectangle(0, ofGetHeight()-16, ofGetWidth(), 16);
+        
+        ofSetColor(txtFade, 0, 0);
+        drawText(getCommonText(), 5, ofGetHeight()-4);
         txtFade--;
         setFade(txtFade);
     }

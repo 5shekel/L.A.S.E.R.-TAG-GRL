@@ -17,11 +17,6 @@ public:
 	void init();
     void exit();
 
-    void windowResized(int w, int h);
-    void preDrawScale(ofEventArgs& args);
-    void postDrawScale(ofEventArgs& args);
-    void scaleMouseCoords(ofMouseEventArgs& mouse);
-
 	void keyPressed(ofKeyEventArgs& key);
 	void keyReleased(ofKeyEventArgs& key);
 
@@ -33,17 +28,13 @@ public:
     void mouseDraggedProjector(ofMouseEventArgs& mouse);
     void mousePressedProjector(ofMouseEventArgs& mouse);
     void mouseReleasedProjector(ofMouseEventArgs& mouse);
-
+    
 	float 	counter;
 	float	spin;
 	float	spinPct;
 	int		prevMX;
 	int		prevMY;
 	bool 	bFirstMouseMove;
-
-    float uiScale;
-    int baseWidth;
-    int baseHeight;
 
 	appController appCtrl;
 

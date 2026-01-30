@@ -1,5 +1,5 @@
 ofxOpenCv
-local_addons/ofxCv
-local_addons/ofxGuiExtended
+ofxCv
+ofxGuiExtended
 ofxOsc
 ofxXmlSettings

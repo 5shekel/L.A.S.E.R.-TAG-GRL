@@ -20,7 +20,6 @@ laserTracking::laserTracking() {
 
 	bCameraSetup = false;
 	bVideoSetup = false;
-	bCVSetup = false;
 	newStroke = true;
 	shouldClear = false;
 	noLaserCounter = 0;
@@ -88,7 +87,6 @@ void laserTracking::setupCamera(int deviceNumber, int width, int height) {
 //---------------------------		
 void laserTracking::setupVideo(string videoPath) {
 	VP.load(videoPath);
-	VP.setVolume(0.0f);  // Mute video to prevent audio hardware conflict
 	VP.play();
 	VP.setUseTexture(true);
 	W = VP.getWidth();
@@ -156,54 +154,49 @@ void laserTracking::setupCV(string filePath) {
 
 	warpDst[3].x = 0;
 	warpDst[3].y = H;
-
-	bCVSetup = true;
 }
 
 //the heart of the beast - where we process 
 //the incoming frame and look for a laser
 //---------------------------		
 void laserTracking::processFrame(float hue, float hueThresh, float sat, float value, int minSize, int deadCount, float jumpDist) {
-	// Skip if CV not set up yet
-	if (!bCVSetup) {
-		return;
-	}
+	int t1, t2, t3, t4, t5;
+
+	int t0 = ofGetElapsedTimeMillis();
 
 	///////////////////////////////////////////////////////////
 	// Part 1 - get the video data
 	///////////////////////////////////////////////////////////
 
-	//pointer to our incoming video pixels
+	//pointer to our incoming video pixels			
 	ofPixels pixCam;
 	bool newFrame = false;
 	//either grab pixels from video or grab from camera
 	if (bVideoSetup) {
 		VP.update();
-		if (VP.isFrameNew() && VP.isLoaded() && VP.getWidth() > 0) {
+		if (VP.isFrameNew()) {
+			newFrame = true;
 			pixCam = VP.getPixels();
-			if (pixCam.isAllocated() && pixCam.getWidth() > 0) {
-				newFrame = true;
-			}
 		}
 	}
-	else if (bCameraSetup) {
+	else {
 		VG.update();
-		if (VG.isFrameNew() && VG.isInitialized() && VG.getWidth() > 0) {
+		if (VG.isFrameNew()) {
+			newFrame = true;
 			pixCam = VG.getPixels();
-			if (pixCam.isAllocated() && pixCam.getWidth() > 0) {
-				newFrame = true;
-			}
 		}
+
 	}
 
 
 
-	if (newFrame && pixCam.getWidth() > 0 && pixCam.getHeight() > 0) {
+	if (newFrame) {
 
 		///////////////////////////////////////////////////////////
 		// Part 2 - warp the video based on our quad
 		///////////////////////////////////////////////////////////
 
+		t1 = ofGetElapsedTimeMillis();
 		//add to openCV and warp to our dst image
 		VideoFrame.setFromPixels(pixCam);
 		WarpedFrame.warpIntoMe(VideoFrame, QUAD.getScaledQuadPoints(W, H), warpDst);
@@ -322,6 +315,9 @@ void laserTracking::processFrame(float hue, float hueThresh, float sat, float va
 			shouldClear = true;
 		}
 
+		t3 = ofGetElapsedTimeMillis();
+
+
 		///////////////////////////////////////////////////////////
 		// Part 4 - find the largest blob of possible candidates 
 		////////////////////////////////////////////////////////////
@@ -332,11 +328,19 @@ void laserTracking::processFrame(float hue, float hueThresh, float sat, float va
 		//than 20 pixels by 20 pixels right?
 		//so lets make our max blob rpIntoMe(VideoFrame, QUAD.getScaledQuadPoints(W,H), warpDst);
 
+		t2 = ofGetElapsedTimeMillis();
+
+
 		///////////////////////////////////////////////////////////
 		// Part 3 - convert tsize 400
 
 		int maxSize = 999999999;
 		Contour.findContours(PresenceFrame, minSize, maxSize, 150, false, true);
+
+		t4 = ofGetElapsedTimeMillis();
+
+		//printf("v%i - w%i - h%i - b%i = %i\n", t1-t0, t2-t1, t3-t2, t4-t3, t4-t0);
+
 
 		///////////////////////////////////////////////////////////
 		// Part 5 - finally calculate our laser coordinates
@@ -535,20 +539,14 @@ void laserTracking::calcColorRange(float hue, float hueThresh, float sat, float 
 }
 
 
-//---------------------------
+//---------------------------				
 void laserTracking::draw(float x, float y) {
 	ofPushMatrix();
 	ofTranslate(x, y);
     mouseOffset = ofVec2f(x, y);
 	//lets draw our openCV frames
 	//with a nice border around them
-
-	// Skip drawing if CV images aren't allocated yet
-	if (!bCVSetup) {
-		ofPopMatrix();
-		return;
-	}
-
+	
 	ofSetHexColor(0xFFFFFF);
 	ofFill();
 	VideoFrame.draw(0, 0, 320, 240);

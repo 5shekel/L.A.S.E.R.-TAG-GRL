@@ -13,27 +13,20 @@ maxStroke::maxStroke(){
 
 //--------------------------------------------------------------
 void maxStroke::addPoint(ofVec3f pt){
+	
 	input[nPts] = pt;
-	nPts++;
-
-	// Only resample when we have enough points to make it meaningful
-	// With < 3 points, just copy input to resampled
-	if (nPts < 3) {
-		for (int i = 0; i < nPts; i++) {
-			resampled[i] = input[i];
-		}
-		// Fill remaining with last point
-		for (int i = nPts; i < nMaximumPts; i++) {
-			resampled[i] = input[nPts-1];
-		}
-	} else {
-		resamplePts(input, nPts, resampled, nMaximumPts);
-	}
-
+	nPts++;;
+	
+	//if (nPts > 1) {
+		resamplePts(input, nPts, resampled, nMaximumPts);	
+	//}
+	
 	if (nPts == nMaximumPts+1){
 		memcpy(input, resampled, nMaximumPts*sizeof(ofVec3f));
 		nPts--;
-	}
+	} 
+
+	
 }
 
 //--------------------------------------------------------------
@@ -134,6 +127,8 @@ void maxStroke::resamplePts(	ofVec3f *input,  		int inNum,
     }
     upper = input[inNum-1];
     output[nResamples++].set(upper.x, upper.y, upper.z);
+  
+
 
 	while(nResamples < outNum){
 		output[nResamples].x = upper.x;
@@ -141,4 +136,5 @@ void maxStroke::resamplePts(	ofVec3f *input,  		int inNum,
 		output[nResamples].z = upper.z;
 		nResamples++;
 	}
+
 }

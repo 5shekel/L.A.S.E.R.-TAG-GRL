@@ -10,22 +10,6 @@ void ofApp::setup(){
 	//for smooth animation
 	ofSetVerticalSync(false);
     ofSetFrameRate(60);
-
-    // UI scaling setup
-    baseWidth = 1280;
-    baseHeight = 800;
-    uiScale = 2.0f;
-
-    // Add draw listeners for scaling - wrap everything including GUI
-    ofAddListener(ofEvents().draw, this, &ofApp::preDrawScale, OF_EVENT_ORDER_BEFORE_APP);
-    ofAddListener(ofEvents().draw, this, &ofApp::postDrawScale, OF_EVENT_ORDER_AFTER_APP + 100);
-
-    // Add mouse listeners to scale coordinates before GUI processes them
-    ofAddListener(ofEvents().mousePressed, this, &ofApp::scaleMouseCoords, OF_EVENT_ORDER_BEFORE_APP);
-    ofAddListener(ofEvents().mouseDragged, this, &ofApp::scaleMouseCoords, OF_EVENT_ORDER_BEFORE_APP);
-    ofAddListener(ofEvents().mouseReleased, this, &ofApp::scaleMouseCoords, OF_EVENT_ORDER_BEFORE_APP);
-    ofAddListener(ofEvents().mouseMoved, this, &ofApp::scaleMouseCoords, OF_EVENT_ORDER_BEFORE_APP);
-
 	init();
 	appCtrl.setup();
 }
@@ -39,7 +23,6 @@ void ofApp::setupProjector(){
 //--------------------------------------------------------------
 void ofApp::update(){
 	appCtrl.mainLoop();
-	ofSoundUpdate();  // Ensure sound system gets updated
 }
 
 //--------------------------------------------------------------
@@ -49,13 +32,6 @@ void ofApp::draw(){
 
 void ofApp::exit(){
     appCtrl.exit();
-}
-
-void ofApp::windowResized(int w, int h){
-    // Calculate scale based on window size vs base size
-    float scaleX = (float)w / baseWidth;
-    float scaleY = (float)h / baseHeight;
-    uiScale = std::min(scaleX, scaleY);
 }
 
 void ofApp::drawProjector(ofEventArgs& args) {
@@ -78,7 +54,7 @@ void ofApp::mouseDragged(ofMouseEventArgs& mouse) {
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(ofMouseEventArgs& mouse) {
-	appCtrl.selectPoint(mouse.x, mouse.y);
+	appCtrl.selectPoint(mouse.x,mouse.y);
 }
 
 //--------------------------------------------------------------
@@ -130,21 +106,5 @@ void ofApp::init(){
 		OF_EXIT_APP(0);
 	}
 	//printf("bCount is %i\n", bCount);
-
-}
-
-void ofApp::preDrawScale(ofEventArgs& args){
-    ofPushView();
-    ofViewport(0, 0, ofGetWindowWidth(), ofGetWindowHeight());
-    ofSetupScreenOrtho(baseWidth, baseHeight, -1, 1);
-}
-
-void ofApp::postDrawScale(ofEventArgs& args){
-    ofPopView();
-}
-
-void ofApp::scaleMouseCoords(ofMouseEventArgs& mouse){
-    // Transform window coordinates to logical coordinates
-    mouse.x = mouse.x * baseWidth / ofGetWindowWidth();
-    mouse.y = mouse.y * baseHeight / ofGetWindowHeight();
+	
 }

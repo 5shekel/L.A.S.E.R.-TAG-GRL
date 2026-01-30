@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -16,44 +17,62 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Cache openFrameworks + compiled lib
-        id: cache-of
+      # Cache 1: Downloaded OF (before any compilation)
+      - name: Cache OF download
+        id: cache-of-download
         uses: actions/cache@v4
         with:
-          path: C:\of
-          key: of-0.12.1-vs64-windows-compiled-v3
-          restore-keys: |
-            of-0.12.1-vs64-windows-compiled-
+          path: C:\of-download
+          key: of-0.12.1-vs64-download
 
       - name: Download openFrameworks
-        if: steps.cache-of.outputs.cache-hit != 'true'
+        if: steps.cache-of-download.outputs.cache-hit != 'true'
         shell: powershell
         run: |
           Write-Host "Downloading openFrameworks..."
           Invoke-WebRequest -Uri "https://github.com/openframeworks/openFrameworks/releases/download/0.12.1/of_v0.12.1_vs_64_release.zip" -OutFile "of.zip"
-          Write-Host "Extracting..."
+          Write-Host "Extracting to cache location..."
           Expand-Archive -Path "of.zip" -DestinationPath "C:\"
-          Rename-Item "C:\of_v0.12.1_vs_64_release" "C:\of"
+          Rename-Item "C:\of_v0.12.1_vs_64_release" "C:\of-download"
+
+      # Cache 2: Fully built OF with addons
+      - name: Cache OF compiled
+        id: cache-of-compiled
+        uses: actions/cache@v4
+        with:
+          path: C:\of
+          key: of-0.12.1-vs64-compiled-v4
+          restore-keys: |
+            of-0.12.1-vs64-compiled-
+
+      - name: Setup OF from download cache
+        if: steps.cache-of-compiled.outputs.cache-hit != 'true'
+        shell: powershell
+        run: |
+          Write-Host "Copying OF from download cache..."
+          if (Test-Path "C:\of") { Remove-Item -Recurse -Force "C:\of" }
+          Copy-Item -Path "C:\of-download" -Destination "C:\of" -Recurse
 
       - name: Clone ofxCv addon
-        if: steps.cache-of.outputs.cache-hit != 'true'
+        if: steps.cache-of-compiled.outputs.cache-hit != 'true'
         shell: powershell
         run: |
           cd C:\of\addons
           if (-not (Test-Path "ofxCv")) {
-            git clone https://github.com/kylemcdonald/ofxCv.git
+            git clone --depth 1 https://github.com/kylemcdonald/ofxCv.git
           }
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Build openFrameworks library (if not cached)
-        if: steps.cache-of.outputs.cache-hit != 'true'
+      - name: Build openFrameworks library
+        if: steps.cache-of-compiled.outputs.cache-hit != 'true'
         shell: powershell
         run: |
           cd C:\of\libs\openFrameworksCompiled\project\vs
           msbuild openframeworksLib.vcxproj /p:Configuration=Release /p:Platform=x64 /m
 
+      # Project-specific steps (always run)
       - name: Copy project to OF apps folder
         shell: powershell
         run: |
@@ -78,15 +97,13 @@ jobs:
         run: |
           cd C:\of
           $pgPath = "C:\of\projectGenerator-vs\projectGenerator.exe"
-          Write-Host "Looking for Project Generator at: $pgPath"
 
           if (Test-Path $pgPath) {
             Write-Host "Running Project Generator..."
             & $pgPath -o"C:\of" -p"vs" "C:\of\apps\myApps\LaserTag2020"
           } else {
-            Write-Host "Project Generator not found. Listing available files:"
+            Write-Host "ERROR: Project Generator not found"
             Get-ChildItem "C:\of" -Directory | Select-Object Name
-            Write-Host "ERROR: Project Generator is required for Windows builds"
             exit 1
           }
 
@@ -95,7 +112,6 @@ jobs:
         run: |
           cd C:\of\apps\myApps\LaserTag2020
 
-          # Check if project file was generated
           if (-not (Test-Path "LaserTag2020.vcxproj")) {
             Write-Host "ERROR: LaserTag2020.vcxproj not found!"
             Get-ChildItem
@@ -116,5 +132,5 @@ jobs:
         if: always()
         shell: powershell
         run: |
-          Write-Host "Build completed. Check artifacts for the Windows executable."
-          Write-Host "If successful, audio should work independently of video on Windows (no AVFoundation conflict)."
+          Write-Host "Build completed."
+          Write-Host "Cache status - Download: ${{ steps.cache-of-download.outputs.cache-hit }}, Compiled: ${{ steps.cache-of-compiled.outputs.cache-hit }}"

@@ -3,7 +3,7 @@ L.A.S.E.R.-TAG-GRL - UNOFFICIAL MIRROR
 
 ## The graffiti research lab L.A.S.E.R-TAG project
 
-**[Build Instructions](LaserTag2020/BUILD-INSTRUCTIONS.md)** | **[Releases](https://github.com/LeonFedotov/L.A.S.E.R.-TAG-GRL/releases)**
+**[Build Instructions](laser-tag-2026/BUILD-INSTRUCTIONS.md)** | **[Releases](https://github.com/LeonFedotov/L.A.S.E.R.-TAG-GRL/releases)**
 
 Live version of howto is at http://www.muonics.net/blog/index.php?postid=15
 

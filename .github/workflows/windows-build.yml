@@ -13,17 +13,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-      - name: Cache openFrameworks + addons + compiled lib
+      - name: Cache openFrameworks + compiled lib
         id: cache-of
         uses: actions/cache@v4
         with:
-          path: |
-            C:\of
-          key: of-0.12.1-vs64-windows-compiled-v2
+          path: C:\of
+          key: of-0.12.1-vs64-windows-compiled-v3
           restore-keys: |
             of-0.12.1-vs64-windows-compiled-
-            of-0.12.1-vs64-windows-
 
       - name: Download openFrameworks
         if: steps.cache-of.outputs.cache-hit != 'true'
@@ -35,14 +35,11 @@ jobs:
           Expand-Archive -Path "of.zip" -DestinationPath "C:\"
           Rename-Item "C:\of_v0.12.1_vs_64_release" "C:\of"
 
-      - name: Clone required addons
+      - name: Clone ofxCv addon
         if: steps.cache-of.outputs.cache-hit != 'true'
         shell: powershell
         run: |
           cd C:\of\addons
-          if (-not (Test-Path "ofxGuiExtended")) {
-            git clone https://github.com/frauzufall/ofxGuiExtended.git
-          }
           if (-not (Test-Path "ofxCv")) {
             git clone https://github.com/kylemcdonald/ofxCv.git
           }
@@ -60,31 +57,52 @@ jobs:
       - name: Copy project to OF apps folder
         shell: powershell
         run: |
-          New-Item -ItemType Directory -Force -Path "C:\of\apps\myApps"
-          if (Test-Path "C:\of\apps\myApps\LaserTag2020") {
-            Remove-Item -Recurse -Force "C:\of\apps\myApps\LaserTag2020"
+          New-Item -ItemType Directory -Force -Path "C:\of\apps\myApps\LaserTag2020"
+
+          # Copy source and config files
+          Copy-Item -Path "${{ github.workspace }}\LaserTag2020\src" -Destination "C:\of\apps\myApps\LaserTag2020\src" -Recurse -Force
+          Copy-Item -Path "${{ github.workspace }}\LaserTag2020\bin" -Destination "C:\of\apps\myApps\LaserTag2020\bin" -Recurse -Force
+          Copy-Item -Path "${{ github.workspace }}\LaserTag2020\addons.make" -Destination "C:\of\apps\myApps\LaserTag2020\addons.make" -Force
+
+          # Copy patched ofxGuiExtended from local_addons to OF addons
+          if (Test-Path "${{ github.workspace }}\LaserTag2020\local_addons\ofxGuiExtended") {
+            Write-Host "Using patched ofxGuiExtended from local_addons"
+            if (Test-Path "C:\of\addons\ofxGuiExtended") {
+              Remove-Item -Recurse -Force "C:\of\addons\ofxGuiExtended"
+            }
+            Copy-Item -Path "${{ github.workspace }}\LaserTag2020\local_addons\ofxGuiExtended" -Destination "C:\of\addons\ofxGuiExtended" -Recurse
           }
-          Copy-Item -Path "${{ github.workspace }}\LaserTag2020" -Destination "C:\of\apps\myApps\LaserTag2020" -Recurse
 
       - name: Generate Visual Studio project
         shell: powershell
         run: |
           cd C:\of
           $pgPath = "C:\of\projectGenerator-vs\projectGenerator.exe"
+          Write-Host "Looking for Project Generator at: $pgPath"
+
           if (Test-Path $pgPath) {
+            Write-Host "Running Project Generator..."
             & $pgPath -o"C:\of" -p"vs" "C:\of\apps\myApps\LaserTag2020"
           } else {
-            Write-Host "Project Generator not found, using template..."
-            Copy-Item "C:\of\scripts\templates\vs\emptyExample.vcxproj" "C:\of\apps\myApps\LaserTag2020\LaserTag2020.vcxproj"
-            Copy-Item "C:\of\scripts\templates\vs\emptyExample.sln" "C:\of\apps\myApps\LaserTag2020\LaserTag2020.sln"
+            Write-Host "Project Generator not found. Listing available files:"
+            Get-ChildItem "C:\of" -Directory | Select-Object Name
+            Write-Host "ERROR: Project Generator is required for Windows builds"
+            exit 1
           }
 
       - name: Build LaserTag2020
         shell: powershell
         run: |
           cd C:\of\apps\myApps\LaserTag2020
+
+          # Check if project file was generated
+          if (-not (Test-Path "LaserTag2020.vcxproj")) {
+            Write-Host "ERROR: LaserTag2020.vcxproj not found!"
+            Get-ChildItem
+            exit 1
+          }
+
           msbuild LaserTag2020.vcxproj /p:Configuration=Release /p:Platform=x64 /m
-        continue-on-error: true
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

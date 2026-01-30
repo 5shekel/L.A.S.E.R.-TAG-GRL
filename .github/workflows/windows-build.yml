@@ -97,12 +97,23 @@ jobs:
       - name: Generate Visual Studio project
         shell: powershell
         run: |
-          cd C:\of
+          $projectPath = "C:\of\apps\myApps\LaserTag2020"
           $pgPath = "C:\of\projectGenerator\projectGenerator.exe"
+
+          Write-Host "Project folder contents:"
+          Get-ChildItem $projectPath
+
+          Write-Host "addons.make content:"
+          Get-Content "$projectPath\addons.make"
 
           if (Test-Path $pgPath) {
             Write-Host "Running Project Generator..."
-            & $pgPath -o"C:\of" -p"vs" "C:\of\apps\myApps\LaserTag2020"
+            # Run from project directory with verbose output
+            cd $projectPath
+            & $pgPath --ofPath="C:\of" --verbose .
+
+            Write-Host "After PG, project files:"
+            Get-ChildItem $projectPath -Filter "*.vcxproj"
           } else {
             Write-Host "ERROR: Project Generator not found"
             Get-ChildItem "C:\of" -Directory | Select-Object Name

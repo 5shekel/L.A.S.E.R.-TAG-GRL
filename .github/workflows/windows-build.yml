@@ -22,6 +22,7 @@ jobs:
         with:
           msystem: MINGW64
           update: true
+          cache: true
           install: >-
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-make
@@ -40,6 +41,9 @@ jobs:
             mingw-w64-x86_64-pugixml
             mingw-w64-x86_64-uriparser
             mingw-w64-x86_64-curl
+            mingw-w64-x86_64-nlohmann-json
+            mingw-w64-x86_64-rtaudio
+            mingw-w64-x86_64-utf8cpp
             make
             git
             unzip

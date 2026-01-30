@@ -24,6 +24,7 @@ jobs:
         with:
           path: C:\of-download
           key: of-0.12.1-vs64-download
+          save-always: true
 
       - name: Download openFrameworks
         if: steps.cache-of-download.outputs.cache-hit != 'true'
@@ -41,9 +42,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: C:\of
-          key: of-0.12.1-vs64-compiled-v4
+          key: of-0.12.1-vs64-compiled-v5
           restore-keys: |
             of-0.12.1-vs64-compiled-
+          save-always: true
 
       - name: Setup OF from download cache
         if: steps.cache-of-compiled.outputs.cache-hit != 'true'
@@ -96,7 +98,7 @@ jobs:
         shell: powershell
         run: |
           cd C:\of
-          $pgPath = "C:\of\projectGenerator-vs\projectGenerator.exe"
+          $pgPath = "C:\of\projectGenerator\projectGenerator.exe"
 
           if (Test-Path $pgPath) {
             Write-Host "Running Project Generator..."

@@ -14,12 +14,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Cache openFrameworks
+      - name: Cache openFrameworks + addons + compiled lib
         id: cache-of
         uses: actions/cache@v4
         with:
-          path: C:\of
-          key: of-0.12.1-vs64-windows
+          path: |
+            C:\of
+          key: of-0.12.1-vs64-windows-compiled-v2
+          restore-keys: |
+            of-0.12.1-vs64-windows-compiled-
+            of-0.12.1-vs64-windows-
 
       - name: Download openFrameworks
         if: steps.cache-of.outputs.cache-hit != 'true'
@@ -32,47 +36,53 @@ jobs:
           Rename-Item "C:\of_v0.12.1_vs_64_release" "C:\of"
 
       - name: Clone required addons
+        if: steps.cache-of.outputs.cache-hit != 'true'
         shell: powershell
         run: |
           cd C:\of\addons
-          git clone https://github.com/frauzufall/ofxGuiExtended.git
-          git clone https://github.com/kylemcdonald/ofxCv.git
-
-      - name: Copy project to OF apps folder
-        shell: powershell
-        run: |
-          New-Item -ItemType Directory -Force -Path "C:\of\apps\myApps"
-          Copy-Item -Path "${{ github.workspace }}" -Destination "C:\of\apps\myApps\LaserTag2020" -Recurse
-
-      - name: Generate Visual Studio project
-        shell: powershell
-        run: |
-          cd C:\of
-          # Download and run project generator in headless mode
-          $pgPath = "C:\of\projectGenerator-vs\projectGenerator.exe"
-          if (Test-Path $pgPath) {
-            & $pgPath -o"C:\of" -p"vs" "C:\of\apps\myApps\LaserTag2020"
-          } else {
-            Write-Host "Project Generator not found, creating minimal project..."
-            # Create a minimal .vcxproj from template
-            Copy-Item "C:\of\scripts\templates\vs\emptyExample.vcxproj" "C:\of\apps\myApps\LaserTag2020\LaserTag2020.vcxproj"
-            Copy-Item "C:\of\scripts\templates\vs\emptyExample.sln" "C:\of\apps\myApps\LaserTag2020\LaserTag2020.sln"
+          if (-not (Test-Path "ofxGuiExtended")) {
+            git clone https://github.com/frauzufall/ofxGuiExtended.git
+          }
+          if (-not (Test-Path "ofxCv")) {
+            git clone https://github.com/kylemcdonald/ofxCv.git
           }
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Build openFrameworks library
+      - name: Build openFrameworks library (if not cached)
+        if: steps.cache-of.outputs.cache-hit != 'true'
         shell: powershell
         run: |
           cd C:\of\libs\openFrameworksCompiled\project\vs
           msbuild openframeworksLib.vcxproj /p:Configuration=Release /p:Platform=x64 /m
 
+      - name: Copy project to OF apps folder
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path "C:\of\apps\myApps"
+          if (Test-Path "C:\of\apps\myApps\LaserTag2020") {
+            Remove-Item -Recurse -Force "C:\of\apps\myApps\LaserTag2020"
+          }
+          Copy-Item -Path "${{ github.workspace }}\LaserTag2020" -Destination "C:\of\apps\myApps\LaserTag2020" -Recurse
+
+      - name: Generate Visual Studio project
+        shell: powershell
+        run: |
+          cd C:\of
+          $pgPath = "C:\of\projectGenerator-vs\projectGenerator.exe"
+          if (Test-Path $pgPath) {
+            & $pgPath -o"C:\of" -p"vs" "C:\of\apps\myApps\LaserTag2020"
+          } else {
+            Write-Host "Project Generator not found, using template..."
+            Copy-Item "C:\of\scripts\templates\vs\emptyExample.vcxproj" "C:\of\apps\myApps\LaserTag2020\LaserTag2020.vcxproj"
+            Copy-Item "C:\of\scripts\templates\vs\emptyExample.sln" "C:\of\apps\myApps\LaserTag2020\LaserTag2020.sln"
+          }
+
       - name: Build LaserTag2020
         shell: powershell
         run: |
           cd C:\of\apps\myApps\LaserTag2020
-          # Update project file paths if needed
           msbuild LaserTag2020.vcxproj /p:Configuration=Release /p:Platform=x64 /m
         continue-on-error: true
 

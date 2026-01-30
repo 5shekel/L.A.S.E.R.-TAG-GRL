@@ -17,14 +17,13 @@ jobs:
         with:
           submodules: recursive
 
-      # Cache 1: Downloaded OF (before any compilation)
-      - name: Cache OF download
+      # Cache 1: Downloaded OF - restore
+      - name: Restore OF download cache
         id: cache-of-download
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: C:\of-download
           key: of-0.12.1-vs64-download
-          save-always: true
 
       - name: Download openFrameworks
         if: steps.cache-of-download.outputs.cache-hit != 'true'
@@ -36,16 +35,23 @@ jobs:
           Expand-Archive -Path "of.zip" -DestinationPath "C:\"
           Rename-Item "C:\of_v0.12.1_vs_64_release" "C:\of-download"
 
-      # Cache 2: Fully built OF with addons
-      - name: Cache OF compiled
+      # Cache 1: Downloaded OF - save (always)
+      - name: Save OF download cache
+        if: always() && steps.cache-of-download.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: C:\of-download
+          key: of-0.12.1-vs64-download
+
+      # Cache 2: Fully built OF - restore
+      - name: Restore OF compiled cache
         id: cache-of-compiled
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: C:\of
-          key: of-0.12.1-vs64-compiled-v5
+          key: of-0.12.1-vs64-compiled-v6
           restore-keys: |
             of-0.12.1-vs64-compiled-
-          save-always: true
 
       - name: Setup OF from download cache
         if: steps.cache-of-compiled.outputs.cache-hit != 'true'
@@ -73,6 +79,14 @@ jobs:
         run: |
           cd C:\of\libs\openFrameworksCompiled\project\vs
           msbuild openframeworksLib.vcxproj /p:Configuration=Release /p:Platform=x64 /m
+
+      # Cache 2: Fully built OF - save (always, if we built it)
+      - name: Save OF compiled cache
+        if: always() && steps.cache-of-compiled.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: C:\of
+          key: of-0.12.1-vs64-compiled-v6
 
       # Project-specific steps (always run)
       - name: Copy project to OF apps folder

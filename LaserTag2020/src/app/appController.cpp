@@ -4,6 +4,9 @@
 static const int LOGICAL_WIDTH = 1280;
 static const int LOGICAL_HEIGHT = 800;
 
+// Status bar font (larger for visibility)
+static ofTrueTypeFont statusBarFont;
+
 //---------------------------------------------------
 appController::appController() {
     
@@ -22,9 +25,10 @@ void appController::setup() {
     BRUSH_MODE = 0;
     bSetupCamera = false;
     bSetupVideo = false;
-    
 
-    
+    // Load status bar font (14pt for visibility at 2x scale)
+    statusBarFont.load("fonts/cour.ttf", 14);
+
     loadSettings();
     
     setupProjections();
@@ -699,11 +703,13 @@ void appController::drawStatusMessage() {
             setFade(txtFade);
         }
         
-        ofSetColor(txtFade * 2, txtFade * 2, txtFade * 2);
-        ofDrawRectangle(0, LOGICAL_HEIGHT-16, LOGICAL_WIDTH, 16);
-        
-        ofSetColor(txtFade, 0, 0);
-        drawText(getCommonText(), 5, LOGICAL_HEIGHT-4);
+        // Dark background bar (24px for 14pt font)
+        ofSetColor(0, 0, 0, txtFade);
+        ofDrawRectangle(0, LOGICAL_HEIGHT-24, LOGICAL_WIDTH, 24);
+
+        // White text using TrueType font for proper scaling
+        ofSetColor(255, 255, 255, txtFade);
+        statusBarFont.drawString(getCommonText(), 8, LOGICAL_HEIGHT-6);
         txtFade--;
         setFade(txtFade);
     }

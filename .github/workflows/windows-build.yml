@@ -94,10 +94,22 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path "C:\of\apps\myApps\LaserTag2020"
 
-          # Copy source and config files
+          # Copy source and bin files
           Copy-Item -Path "${{ github.workspace }}\LaserTag2020\src" -Destination "C:\of\apps\myApps\LaserTag2020\src" -Recurse -Force
           Copy-Item -Path "${{ github.workspace }}\LaserTag2020\bin" -Destination "C:\of\apps\myApps\LaserTag2020\bin" -Recurse -Force
-          Copy-Item -Path "${{ github.workspace }}\LaserTag2020\addons.make" -Destination "C:\of\apps\myApps\LaserTag2020\addons.make" -Force
+
+          # Create Windows-compatible addons.make (use global addons, not local_addons paths)
+          # Original has local_addons/ofxCv and local_addons/ofxGuiExtended which we copy to global
+          @"
+          ofxOpenCv
+          ofxCv
+          ofxGuiExtended
+          ofxOsc
+          ofxXmlSettings
+          "@ | Set-Content "C:\of\apps\myApps\LaserTag2020\addons.make"
+
+          Write-Host "Created Windows addons.make:"
+          Get-Content "C:\of\apps\myApps\LaserTag2020\addons.make"
 
           # Copy patched ofxGuiExtended from local_addons to OF addons
           if (Test-Path "${{ github.workspace }}\LaserTag2020\local_addons\ofxGuiExtended") {

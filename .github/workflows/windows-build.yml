@@ -1,0 +1,167 @@
+name: Windows Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          cache: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-make
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-cairo
+            mingw-w64-x86_64-freeglut
+            mingw-w64-x86_64-glew
+            mingw-w64-x86_64-glfw
+            mingw-w64-x86_64-freeimage
+            mingw-w64-x86_64-assimp
+            mingw-w64-x86_64-boost
+            mingw-w64-x86_64-poco
+            mingw-w64-x86_64-openal
+            mingw-w64-x86_64-libsndfile
+            mingw-w64-x86_64-opencv
+            mingw-w64-x86_64-pugixml
+            mingw-w64-x86_64-uriparser
+            mingw-w64-x86_64-curl
+            mingw-w64-x86_64-nlohmann-json
+            mingw-w64-x86_64-rtaudio
+            mingw-w64-x86_64-utf8cpp
+            mingw-w64-x86_64-glm
+            make
+            git
+            unzip
+            wget
+
+      # Cache: Downloaded OF
+      - name: Restore OF download cache
+        id: cache-of-download
+        uses: actions/cache/restore@v4
+        with:
+          path: C:\of
+          key: of-0.12.1-msys2-download
+
+      - name: Download openFrameworks
+        if: steps.cache-of-download.outputs.cache-hit != 'true'
+        shell: msys2 {0}
+        run: |
+          echo "Downloading openFrameworks..."
+          wget -q https://github.com/openframeworks/openFrameworks/releases/download/0.12.1/of_v0.12.1_msys2_mingw64_release.zip -O of.zip
+          echo "Extracting..."
+          unzip -q of.zip -d /c/
+          mv /c/of_v0.12.1_msys2_mingw64_release /c/of
+          echo "Done"
+
+      - name: Save OF download cache
+        if: always() && steps.cache-of-download.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: C:\of
+          key: of-0.12.1-msys2-download
+
+      - name: Clone required addons
+        shell: msys2 {0}
+        run: |
+          cd /c/of/addons
+          if [ ! -d "ofxCv" ]; then
+            git clone --depth 1 https://github.com/kylemcdonald/ofxCv.git
+          fi
+
+      - name: Copy project and addons
+        shell: msys2 {0}
+        run: |
+          mkdir -p /c/of/apps/myApps/LaserTag2020
+          cp -r LaserTag2020/src /c/of/apps/myApps/LaserTag2020/
+          cp -r LaserTag2020/bin /c/of/apps/myApps/LaserTag2020/
+
+          # Create Windows-compatible addons.make
+          echo "ofxOpenCv" > /c/of/apps/myApps/LaserTag2020/addons.make
+          echo "ofxCv" >> /c/of/apps/myApps/LaserTag2020/addons.make
+          echo "ofxGuiExtended" >> /c/of/apps/myApps/LaserTag2020/addons.make
+          echo "ofxOsc" >> /c/of/apps/myApps/LaserTag2020/addons.make
+          echo "ofxXmlSettings" >> /c/of/apps/myApps/LaserTag2020/addons.make
+
+          # Copy patched ofxGuiExtended
+          if [ -d "LaserTag2020/local_addons/ofxGuiExtended" ]; then
+            echo "Using patched ofxGuiExtended"
+            rm -rf /c/of/addons/ofxGuiExtended
+            cp -r LaserTag2020/local_addons/ofxGuiExtended /c/of/addons/
+          fi
+
+          echo "Project structure:"
+          ls -la /c/of/apps/myApps/LaserTag2020/
+
+      - name: Create Makefile config
+        shell: msys2 {0}
+        run: |
+          cd /c/of/apps/myApps/LaserTag2020
+
+          # Create config.make
+          cat > config.make << 'EOF'
+          PROJECT_LDFLAGS=-static-libgcc -static-libstdc++
+          PROJECT_AFTER_OSX =
+          PROJECT_EXCLUSIONS =
+          EOF
+
+          # Create Makefile that includes OF makefiles
+          cat > Makefile << 'EOF'
+          # Openframeworks project makefile
+          OF_ROOT = ../../..
+
+          # Include additional source directories
+          PROJECT_ADDONS_SRC = src/app src/dataIn src/dataOut src/dataOut/brushes src/utils
+
+          include $(OF_ROOT)/libs/openFrameworksCompiled/project/makefileCommon/compile.project.mk
+          EOF
+
+          echo "Created Makefile and config.make"
+
+      - name: Build LaserTag2020
+        shell: msys2 {0}
+        run: |
+          cd /c/of/apps/myApps/LaserTag2020
+          echo "Building with make..."
+          make Release -j4 2>&1 || {
+            echo "Build failed, showing errors:"
+            make Release 2>&1 | tail -100
+            exit 1
+          }
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: LaserTag2020-Windows-MSYS2
+          path: C:\of\apps\myApps\LaserTag2020\bin\**
+          retention-days: 7
+
+      - name: Report build status
+        if: always()
+        shell: msys2 {0}
+        run: |
+          echo "Build completed."
+          echo "Cache status - Download: ${{ steps.cache-of-download.outputs.cache-hit }}"
+          if [ -f /c/of/apps/myApps/LaserTag2020/bin/LaserTag2020.exe ]; then
+            echo "SUCCESS: LaserTag2020.exe created"
+            ls -la /c/of/apps/myApps/LaserTag2020/bin/
+          else
+            echo "No exe found in bin/"
+            ls -la /c/of/apps/myApps/LaserTag2020/bin/ 2>/dev/null || echo "bin dir not found"
+          fi

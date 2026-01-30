@@ -3,6 +3,8 @@ L.A.S.E.R.-TAG-GRL - UNOFFICIAL MIRROR
 
 ## The graffiti research lab L.A.S.E.R-TAG project
 
+**[Build Instructions](laser-tag-2026/BUILD-INSTRUCTIONS.md)** | **[Releases](https://github.com/LeonFedotov/L.A.S.E.R.-TAG-GRL/releases)**
+
 Live version of howto is at http://www.muonics.net/blog/index.php?postid=15
 
 Archived Howto: [github](https://github.com/LeonFedotov/L.A.S.E.R.-TAG-GRL/blob/main/Theodore%20Watson%20-%20GRL%20Laser%20Tag%20Rotterdam%20-%20how%20to%20and%20source%20code.pdf)

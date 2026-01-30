@@ -8,6 +8,8 @@ LaserTag2020 is an interactive art installation built with **openFrameworks** (C
 
 ## Build Commands
 
+See **[BUILD-INSTRUCTIONS.md](BUILD-INSTRUCTIONS.md)** for detailed platform-specific instructions (macOS, Windows, Linux).
+
 ```bash
 # Build (default/debug)
 make

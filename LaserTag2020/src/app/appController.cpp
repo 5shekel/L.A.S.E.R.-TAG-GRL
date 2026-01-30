@@ -1,5 +1,9 @@
 #include "appController.h"
 
+// Logical window dimensions for UI scaling
+static const int LOGICAL_WIDTH = 1280;
+static const int LOGICAL_HEIGHT = 800;
+
 //---------------------------------------------------
 appController::appController() {
     
@@ -107,7 +111,7 @@ void appController::onEnableNetwork(bool& b) {
 //lets read some xml!
 //----------------------------------------------------
 void appController::loadSettings() {
-    
+
     BRUSH_SETTINGS.setName("Brush Settings");
     BRUSH_SETTINGS.add(BRUSH_MODE.set("Brush mode", 0, 0, NUM_BRUSHES-1));
     BRUSH_SETTINGS.add(BRUSH_WIDTH.set("Brush width", 4, 2, 128));
@@ -193,7 +197,7 @@ void appController::loadSettings() {
     network_panel->loadFromFile(ofToDataPath("settings/network_settings.xml"));
     music_panel->loadFromFile(ofToDataPath("settings/music_settings.xml"));
     camera_panel->loadFromFile(ofToDataPath("settings/camera_settings.xml"));
-    
+
     positionGui();
 }
 
@@ -590,11 +594,11 @@ void appController::drawGUI() {
     ofPushStyle();
     ofSetColor(255, 255, 255);
 
-    noticeImg.draw(0, ofGetHeight()-noticeImg.getHeight()-16);
+    noticeImg.draw(0, LOGICAL_HEIGHT-noticeImg.getHeight()-16);
     if (twentyTwentyImg.isAllocated()) {
         ofPushMatrix();
         {
-            ofTranslate(420, ofGetHeight()-noticeImg.getHeight()-twentyTwentyImg.getHeight()/2);
+            ofTranslate(420, LOGICAL_HEIGHT-noticeImg.getHeight()-twentyTwentyImg.getHeight()/2);
             ofRotateDeg(15);
             twentyTwentyImg.draw(0, 0);
         }
@@ -633,10 +637,10 @@ void appController::drawGUI() {
 
     if (webMovieLoaded) {
         ofSetColor(255, 255, 255);
-        VP.draw(0, 0, ofGetWidth(), ofGetHeight());
+        VP.draw(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
     }
     ofSetColor(255, 255, 255);
-    ofDrawBitmapString("Drag the second window to your projector screen and press F to go full screen\ns - saves\nr - loads\nd - clears screen\nspacebar - toggles checkerboard\nPlease reference the help guide for more information\n", noticeImg.getWidth()+10, ofGetHeight()-noticeImg.getHeight()-16);
+    ofDrawBitmapString("Drag the second window to your projector screen and press F to go full screen\ns - saves\nr - loads\nd - clears screen\nspacebar - toggles checkerboard\nPlease reference the help guide for more information\n", noticeImg.getWidth()+10, LOGICAL_HEIGHT-noticeImg.getHeight()-16);
 
 
     ofPopStyle();
@@ -696,10 +700,10 @@ void appController::drawStatusMessage() {
         }
         
         ofSetColor(txtFade * 2, txtFade * 2, txtFade * 2);
-        ofDrawRectangle(0, ofGetHeight()-16, ofGetWidth(), 16);
+        ofDrawRectangle(0, LOGICAL_HEIGHT-16, LOGICAL_WIDTH, 16);
         
         ofSetColor(txtFade, 0, 0);
-        drawText(getCommonText(), 5, ofGetHeight()-4);
+        drawText(getCommonText(), 5, LOGICAL_HEIGHT-4);
         txtFade--;
         setFade(txtFade);
     }

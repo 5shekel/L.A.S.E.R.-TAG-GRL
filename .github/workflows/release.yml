@@ -1,0 +1,188 @@
+name: Build Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Cache openFrameworks
+        uses: actions/cache@v4
+        id: cache-of
+        with:
+          path: laser-tag-2026/lib/of_v0.12.1_linux64_release
+          key: of-linux-0.12.1
+
+      - name: Download openFrameworks
+        if: steps.cache-of.outputs.cache-hit != 'true'
+        run: |
+          cd laser-tag-2026
+          mkdir -p lib && cd lib
+          curl -LO https://github.com/openframeworks/openFrameworks/releases/download/0.12.1/of_v0.12.1_linux64_release.tar.gz
+          tar -xzf of_v0.12.1_linux64_release.tar.gz
+          rm of_v0.12.1_linux64_release.tar.gz
+
+      - name: Install OF dependencies
+        run: |
+          sudo apt-get update
+          cd laser-tag-2026/lib/of_v0.12.1_linux64_release/scripts/linux/ubuntu
+          yes | sudo ./install_dependencies.sh || true
+
+      - name: Install addons
+        run: |
+          cd laser-tag-2026/lib/of_v0.12.1_linux64_release/addons
+          git clone --depth 1 https://github.com/LeonFedotov/ofxGuiExtended.git -b of-0.12-compatibility || true
+          git clone --depth 1 https://github.com/kylemcdonald/ofxCv.git || true
+
+      - name: Update config.make for Linux
+        run: |
+          cd laser-tag-2026
+          sed -i 's|OF_ROOT = lib/of_v0.12.1_osx_release|OF_ROOT = lib/of_v0.12.1_linux64_release|' config.make
+
+      - name: Build
+        run: |
+          cd laser-tag-2026
+          make Release -j$(nproc)
+
+      - name: Package
+        run: |
+          cd laser-tag-2026/bin
+          tar -czvf laser-tag-2026-linux.tar.gz laser-tag-2026 data/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: laser-tag-2026/bin/laser-tag-2026-linux.tar.gz
+
+  build-macos:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Cache openFrameworks
+        uses: actions/cache@v4
+        id: cache-of
+        with:
+          path: laser-tag-2026/lib/of_v0.12.1_osx_release
+          key: of-macos-0.12.1
+
+      - name: Download openFrameworks
+        if: steps.cache-of.outputs.cache-hit != 'true'
+        run: |
+          cd laser-tag-2026
+          mkdir -p lib && cd lib
+          curl -LO https://github.com/openframeworks/openFrameworks/releases/download/0.12.1/of_v0.12.1_osx_release.tar.gz
+          tar -xzf of_v0.12.1_osx_release.tar.gz
+          rm of_v0.12.1_osx_release.tar.gz
+
+      - name: Install addons
+        run: |
+          cd laser-tag-2026/lib/of_v0.12.1_osx_release/addons
+          git clone --depth 1 https://github.com/LeonFedotov/ofxGuiExtended.git -b of-0.12-compatibility || true
+          git clone --depth 1 https://github.com/kylemcdonald/ofxCv.git || true
+
+      - name: Build
+        run: |
+          cd laser-tag-2026
+          make Release -j$(sysctl -n hw.ncpu)
+
+      - name: Package
+        run: |
+          cd laser-tag-2026/bin
+          zip -r laser-tag-2026-macos.zip laser-tag-2026.app
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: laser-tag-2026/bin/laser-tag-2026-macos.zip
+
+  build-windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Cache openFrameworks
+        uses: actions/cache@v4
+        id: cache-of
+        with:
+          path: laser-tag-2026/lib/of_v0.12.1_vs_64_release
+          key: of-windows-0.12.1
+
+      - name: Download openFrameworks
+        if: steps.cache-of.outputs.cache-hit != 'true'
+        shell: powershell
+        run: |
+          cd laser-tag-2026
+          New-Item -ItemType Directory -Force -Path lib
+          cd lib
+          Invoke-WebRequest -Uri "https://github.com/openframeworks/openFrameworks/releases/download/0.12.1/of_v0.12.1_vs_64_release.zip" -OutFile "of.zip"
+          Expand-Archive -Path of.zip -DestinationPath .
+          Remove-Item of.zip
+
+      - name: Install addons
+        shell: powershell
+        run: |
+          cd laser-tag-2026/lib/of_v0.12.1_vs_64_release/addons
+          git clone --depth 1 https://github.com/LeonFedotov/ofxGuiExtended.git -b of-0.12-compatibility
+          git clone --depth 1 https://github.com/kylemcdonald/ofxCv.git
+
+      - name: Generate VS project
+        shell: powershell
+        run: |
+          cd laser-tag-2026
+          # Create minimal vcxproj if not exists - use projectGenerator or manual setup
+          # For now, assume vcxproj exists from repo
+
+      - name: Build
+        shell: cmd
+        run: |
+          cd laser-tag-2026
+          "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe" laser-tag-2026.sln /p:Configuration=Release /p:Platform=x64 /m
+
+      - name: Create dll directory
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path laser-tag-2026/dll/x64
+
+      - name: Package
+        shell: powershell
+        run: |
+          cd laser-tag-2026/bin
+          Compress-Archive -Path laser-tag-2026.exe,data -DestinationPath laser-tag-2026-windows.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: laser-tag-2026/bin/laser-tag-2026-windows.zip
+
+  release:
+    needs: [build-linux, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            linux-build/laser-tag-2026-linux.tar.gz
+            macos-build/laser-tag-2026-macos.zip
+            windows-build/laser-tag-2026-windows.zip
+          generate_release_notes: true

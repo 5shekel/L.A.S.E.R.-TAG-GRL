@@ -1,0 +1,240 @@
+<?xml version="1.0"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<ItemGroup Label="ProjectConfigurations">
+		<ProjectConfiguration Include="Debug|x64">
+			<Configuration>Debug</Configuration>
+			<Platform>x64</Platform>
+		</ProjectConfiguration>
+		<ProjectConfiguration Include="Release|x64">
+			<Configuration>Release</Configuration>
+			<Platform>x64</Platform>
+		</ProjectConfiguration>
+	</ItemGroup>
+	<PropertyGroup Condition="'$(Platform)'=='x64'">
+		<LatestTargetPlatformVersion>$([Microsoft.Build.Utilities.ToolLocationHelper]::GetLatestSDKTargetPlatformVersion('Windows', '10.0'))</LatestTargetPlatformVersion>
+		<WindowsTargetPlatformVersion Condition="'$(WindowsTargetPlatformVersion)' == ''">$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
+		<TargetPlatformVersion>$(WindowsTargetPlatformVersion)</TargetPlatformVersion>
+	</PropertyGroup>
+	<PropertyGroup Label="Globals">
+		<ProjectGuid>{7FD42DF7-442E-479A-BA76-D0022F99702A}</ProjectGuid>
+		<Keyword>Win32Proj</Keyword>
+		<RootNamespace>laser-tag-2026</RootNamespace>
+	</PropertyGroup>
+	<Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+		<ConfigurationType>Application</ConfigurationType>
+		<CharacterSet>Unicode</CharacterSet>
+		<PlatformToolset>v143</PlatformToolset>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+		<ConfigurationType>Application</ConfigurationType>
+		<CharacterSet>Unicode</CharacterSet>
+		<WholeProgramOptimization>true</WholeProgramOptimization>
+		<PlatformToolset>v143</PlatformToolset>
+	</PropertyGroup>
+	<Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+	<ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+		<Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+		<Import Project="lib\of_v0.12.1_vs_64_release\libs\openFrameworksCompiled\project\vs\openFrameworksRelease.props" />
+	</ImportGroup>
+	<ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+		<Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+		<Import Project="lib\of_v0.12.1_vs_64_release\libs\openFrameworksCompiled\project\vs\openFrameworksDebug.props" />
+	</ImportGroup>
+	<PropertyGroup Label="UserMacros" />
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+		<OutDir>bin\</OutDir>
+		<IntDir>obj\$(Platform)\$(Configuration)\</IntDir>
+		<TargetName>$(ProjectName)_debug</TargetName>
+		<LinkIncremental>true</LinkIncremental>
+		<GenerateManifest>true</GenerateManifest>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+		<OutDir>bin\</OutDir>
+		<IntDir>obj\$(Platform)\$(Configuration)\</IntDir>
+		<LinkIncremental>false</LinkIncremental>
+	</PropertyGroup>
+	<ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+		<ClCompile>
+			<Optimization>Disabled</Optimization>
+			<BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+			<PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+			<RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+			<WarningLevel>Level3</WarningLevel>
+			<AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);src;src/app;src/dataIn;src/dataOut;src/dataOut/brushes;src/dataOut/brushes/gestureBrush;src/dataOut/brushes/gestureBrush/gmachines_uncurler;src/utils;../../../addons/ofxOpenCv/src;../../../addons/ofxOpenCv/libs/opencv/include;../../../addons/ofxCv/src;../../../addons/ofxCv/libs/CLD/include;../../../addons/ofxCv/libs/CLD/include/CLD;../../../addons/ofxCv/libs/ofxCv/include;../../../addons/ofxCv/src;../../../addons/ofxCv/libs/CLD/include;../../../addons/ofxCv/libs/CLD/include/CLD;../../../addons/ofxGuiExtended/src;../../../addons/ofxGuiExtended/src/containers;../../../addons/ofxGuiExtended/src/controls;../../../addons/ofxGuiExtended/src/dom;../../../addons/ofxGuiExtended/src/themes;../../../addons/ofxGuiExtended/src/util;../../../addons/ofxGuiExtended/src/view;../../../addons/ofxGuiExtended/src/DOM;../../../addons/ofxOsc/src;../../../addons/ofxOsc/libs/oscpack/src;../../../addons/ofxOsc/libs/oscpack/src/osc;../../../addons/ofxOsc/libs/oscpack/src/ip;../../../addons/ofxXmlSettings/src;../../../addons/ofxXmlSettings/libs</AdditionalIncludeDirectories>
+			<CompileAs>CompileAsCpp</CompileAs>
+			<MultiProcessorCompilation>true</MultiProcessorCompilation>
+			<ObjectFileName>$(IntDir)\Build\%(RelativeDir)\$(Configuration)\</ObjectFileName>
+			<LanguageStandard>stdcpp17</LanguageStandard>
+			<AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+		</ClCompile>
+		<Link>
+			<GenerateDebugInformation>true</GenerateDebugInformation>
+			<SubSystem>Console</SubSystem>
+			<RandomizedBaseAddress>true</RandomizedBaseAddress>
+			<AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+			<ForceFileOutput>MultiplyDefinedSymbolOnly</ForceFileOutput>
+		</Link>
+		<PostBuildEvent />
+	</ItemDefinitionGroup>
+	<ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+		<ClCompile>
+			<WholeProgramOptimization>false</WholeProgramOptimization>
+			<PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+			<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+			<WarningLevel>Level3</WarningLevel>
+			<AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);src;src/app;src/dataIn;src/dataOut;src/dataOut/brushes;src/dataOut/brushes/gestureBrush;src/dataOut/brushes/gestureBrush/gmachines_uncurler;src/utils;../../../addons/ofxOpenCv/src;../../../addons/ofxOpenCv/libs/opencv/include;../../../addons/ofxCv/src;../../../addons/ofxCv/libs/CLD/include;../../../addons/ofxCv/libs/CLD/include/CLD;../../../addons/ofxCv/libs/ofxCv/include;../../../addons/ofxCv/src;../../../addons/ofxCv/libs/CLD/include;../../../addons/ofxCv/libs/CLD/include/CLD;../../../addons/ofxGuiExtended/src;../../../addons/ofxGuiExtended/src/containers;../../../addons/ofxGuiExtended/src/controls;../../../addons/ofxGuiExtended/src/dom;../../../addons/ofxGuiExtended/src/themes;../../../addons/ofxGuiExtended/src/util;../../../addons/ofxGuiExtended/src/view;../../../addons/ofxGuiExtended/src/DOM;../../../addons/ofxOsc/src;../../../addons/ofxOsc/libs/oscpack/src;../../../addons/ofxOsc/libs/oscpack/src/osc;../../../addons/ofxOsc/libs/oscpack/src/ip;../../../addons/ofxXmlSettings/src;../../../addons/ofxXmlSettings/libs</AdditionalIncludeDirectories>
+			<CompileAs>CompileAsCpp</CompileAs>
+			<ObjectFileName>$(IntDir)\Build\%(RelativeDir)\$(Configuration)\</ObjectFileName>
+			<LanguageStandard>stdcpp17</LanguageStandard>
+			<AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+		</ClCompile>
+		<Link>
+			<IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+			<GenerateDebugInformation>false</GenerateDebugInformation>
+			<SubSystem>Console</SubSystem>
+			<OptimizeReferences>true</OptimizeReferences>
+			<EnableCOMDATFolding>true</EnableCOMDATFolding>
+			<RandomizedBaseAddress>true</RandomizedBaseAddress>
+			<AdditionalDependencies>opencv_world4110.lib;ittnotify.lib;ws2_32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalLibraryDirectories>lib\of_v0.12.1_vs_64_release\addons\ofxOpenCv\libs\opencv\lib\vs\x64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+			<ForceFileOutput>MultiplyDefinedSymbolOnly</ForceFileOutput>
+		</Link>
+		<PostBuildEvent>
+			<Command>xcopy /Y /E "$(ProjectDir)dll\x64\*.dll" "$(TargetDir)"</Command>
+		</PostBuildEvent>
+	</ItemDefinitionGroup>
+	<!-- Project source files -->
+	<ItemGroup>
+		<ClCompile Include="src\main.cpp" />
+		<ClCompile Include="src\ofApp.cpp" />
+		<ClCompile Include="src\app\appController.cpp" />
+		<ClCompile Include="src\app\guiQuad.cpp" />
+		<ClCompile Include="src\dataIn\coordWarping.cpp" />
+		<ClCompile Include="src\dataIn\hitZone.cpp" />
+		<ClCompile Include="src\dataIn\laserTracking.cpp" />
+		<ClCompile Include="src\dataOut\drips.cpp" />
+		<ClCompile Include="src\dataOut\imageProjection.cpp" />
+		<ClCompile Include="src\dataOut\laserSending.cpp" />
+		<ClCompile Include="src\dataOut\trackPlayer.cpp" />
+		<ClCompile Include="src\dataOut\brushes\gestureBrush\gestureBrush.cpp" />
+		<ClCompile Include="src\dataOut\brushes\gestureBrush\gmachines_uncurler\angleStroke.cpp" />
+		<ClCompile Include="src\dataOut\brushes\gestureBrush\gmachines_uncurler\maxStroke.cpp" />
+		<ClCompile Include="src\dataOut\brushes\gestureBrush\gmachines_uncurler\strokeRenderer.cpp" />
+		<ClCompile Include="src\dataOut\brushes\gestureBrush\gmachines_uncurler\swimmingMachine.cpp" />
+		<ClCompile Include="src\dataOut\brushes\gestureBrush\gmachines_uncurler\swimStroke.cpp" />
+		<ClCompile Include="src\dataOut\brushes\graffLetter.cpp" />
+		<ClCompile Include="src\dataOut\brushes\pngBrush.cpp" />
+		<ClCompile Include="src\dataOut\brushes\vectorBrush.cpp" />
+		<ClCompile Include="src\utils\colorManager.cpp" />
+		<!-- ofxOpenCv -->
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxOpenCv\src\ofxCvColorImage.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxOpenCv\src\ofxCvContourFinder.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxOpenCv\src\ofxCvFloatImage.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxOpenCv\src\ofxCvGrayscaleImage.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxOpenCv\src\ofxCvHaarFinder.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxOpenCv\src\ofxCvImage.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxOpenCv\src\ofxCvShortImage.cpp" />
+		<!-- ofxCv -->
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxCv\libs\ofxCv\src\Calibration.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxCv\libs\ofxCv\src\ContourFinder.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxCv\libs\ofxCv\src\Distance.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxCv\libs\ofxCv\src\Flow.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxCv\libs\ofxCv\src\Helpers.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxCv\libs\ofxCv\src\ObjectFinder.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxCv\libs\ofxCv\src\RunningBackground.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxCv\libs\ofxCv\src\Tracker.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxCv\libs\ofxCv\src\Utilities.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxCv\libs\ofxCv\src\Wrappers.cpp" />
+		<!-- ofxOsc -->
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxOsc\src\ofxOscMessage.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxOsc\src\ofxOscBundle.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxOsc\src\ofxOscParameterSync.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxOsc\src\ofxOscReceiver.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxOsc\src\ofxOscSender.cpp" />
+		<!-- oscpack library (win32) -->
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxOsc\libs\oscpack\src\osc\OscOutboundPacketStream.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxOsc\libs\oscpack\src\osc\OscPrintReceivedElements.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxOsc\libs\oscpack\src\osc\OscReceivedElements.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxOsc\libs\oscpack\src\osc\OscTypes.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxOsc\libs\oscpack\src\ip\IpEndpointName.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxOsc\libs\oscpack\src\ip\win32\NetworkingUtils.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxOsc\libs\oscpack\src\ip\win32\UdpSocket.cpp" />
+		<!-- ofxXmlSettings -->
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxXmlSettings\src\ofxXmlSettings.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxXmlSettings\libs\tinyxml.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxXmlSettings\libs\tinyxmlerror.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxXmlSettings\libs\tinyxmlparser.cpp" />
+		<!-- ofxGuiExtended -->
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\ofxGuiElement.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\ofxGuiExtended.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\containers\ofxGuiContainer.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\containers\ofxGuiGroup.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\containers\ofxGuiMenu.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\containers\ofxGuiPanel.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\containers\ofxGuiSliderGroup.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\containers\ofxGuiTabs.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\controls\ofxGuiButton.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\controls\ofxGuiFpsPlotter.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\controls\ofxGuiFunctionPlotter.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\controls\ofxGuiFunctionSlider.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\controls\ofxGuiGraphics.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\controls\ofxGuiInputField.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\controls\ofxGuiLabel.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\controls\ofxGuiRangeSlider.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\controls\ofxGuiSlider.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\controls\ofxGuiToggle.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\controls\ofxGuiValuePlotter.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\controls\ofxGuiZoomableGraphics.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\DOM\Document.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\DOM\Element.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\DOM\Events.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\DOM\Exceptions.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\DOM\Layout.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\view\JsonConfigParser.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\view\ofxDOMBoxLayout.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\view\ofxDOMFlexBoxLayout.cpp" />
+		<ClCompile Include="lib\of_v0.12.1_vs_64_release\addons\ofxGuiExtended\src\view\ofxDOMLayoutHelper.cpp" />
+	</ItemGroup>
+	<ItemGroup>
+		<ClInclude Include="src\ofApp.h" />
+		<ClInclude Include="src\app\appController.h" />
+		<ClInclude Include="src\app\baseGui.h" />
+		<ClInclude Include="src\app\guiQuad.h" />
+		<ClInclude Include="src\dataIn\coordWarping.h" />
+		<ClInclude Include="src\dataIn\hitZone.h" />
+		<ClInclude Include="src\dataIn\laserTracking.h" />
+		<ClInclude Include="src\dataOut\drips.h" />
+		<ClInclude Include="src\dataOut\imageProjection.h" />
+		<ClInclude Include="src\dataOut\laserSending.h" />
+		<ClInclude Include="src\dataOut\trackPlayer.h" />
+		<ClInclude Include="src\dataOut\brushes\baseBrush.h" />
+		<ClInclude Include="src\dataOut\brushes\basicVectorBrush.h" />
+		<ClInclude Include="src\dataOut\brushes\gestureBrush\gestureBrush.h" />
+		<ClInclude Include="src\dataOut\brushes\gestureBrush\gmachines_uncurler\angleStroke.h" />
+		<ClInclude Include="src\dataOut\brushes\gestureBrush\gmachines_uncurler\maxStroke.h" />
+		<ClInclude Include="src\dataOut\brushes\gestureBrush\gmachines_uncurler\strokeRenderer.h" />
+		<ClInclude Include="src\dataOut\brushes\gestureBrush\gmachines_uncurler\swimmingMachine.h" />
+		<ClInclude Include="src\dataOut\brushes\gestureBrush\gmachines_uncurler\swimStroke.h" />
+		<ClInclude Include="src\dataOut\brushes\graffLetter.h" />
+		<ClInclude Include="src\dataOut\brushes\pngBrush.h" />
+		<ClInclude Include="src\dataOut\brushes\vectorBrush.h" />
+		<ClInclude Include="src\utils\colorManager.h" />
+		<ClInclude Include="src\utils\glBlendFunc.h" />
+		<ClInclude Include="src\utils\laserUtils.h" />
+		<ClInclude Include="src\utils\miscUtils.h" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="$(OF_ROOT)\libs\openFrameworksCompiled\project\vs\openframeworksLib.vcxproj">
+			<Project>{5837595d-aca9-485c-8e76-729040ce4b0b}</Project>
+		</ProjectReference>
+	</ItemGroup>
+	<ItemGroup>
+		<ResourceCompile Include="icon.rc">
+			<AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/D_DEBUG %(AdditionalOptions)</AdditionalOptions>
+			<AdditionalIncludeDirectories>$(OF_ROOT)\libs\openFrameworksCompiled\project\vs</AdditionalIncludeDirectories>
+		</ResourceCompile>
+	</ItemGroup>
+	<Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

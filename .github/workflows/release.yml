@@ -14,21 +14,26 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Cache openFrameworks
+      - name: Cache openFrameworks + addons
         uses: actions/cache@v4
         id: cache-of
         with:
-          path: laser-tag-2026/lib/of_v0.12.1_linux64_release
-          key: of-linux-0.12.1
+          path: |
+            laser-tag-2026/lib/of_v0.12.1_linux64_release
+          key: of-linux-0.12.1-v2
 
       - name: Download openFrameworks
         if: steps.cache-of.outputs.cache-hit != 'true'
         run: |
           cd laser-tag-2026
           mkdir -p lib && cd lib
-          curl -LO https://github.com/openframeworks/openFrameworks/releases/download/0.12.1/of_v0.12.1_linux64_release.tar.gz
-          tar -xzf of_v0.12.1_linux64_release.tar.gz
-          rm of_v0.12.1_linux64_release.tar.gz
+          curl -sfSL -o of.tar.gz https://github.com/openframeworks/openFrameworks/releases/download/0.12.1/of_v0.12.1_linux64_release.tar.gz
+          tar -xzf of.tar.gz
+          rm of.tar.gz
+          # Install addons into OF directory (will be cached)
+          cd of_v0.12.1_linux64_release/addons
+          git clone --depth 1 https://github.com/LeonFedotov/ofxGuiExtended.git -b of-0.12-compatibility
+          git clone --depth 1 https://github.com/kylemcdonald/ofxCv.git
 
       - name: Install OF dependencies
         run: |
@@ -36,11 +41,15 @@ jobs:
           cd laser-tag-2026/lib/of_v0.12.1_linux64_release/scripts/linux/ubuntu
           yes | sudo ./install_dependencies.sh || true
 
-      - name: Install addons
-        run: |
-          cd laser-tag-2026/lib/of_v0.12.1_linux64_release/addons
-          git clone --depth 1 https://github.com/LeonFedotov/ofxGuiExtended.git -b of-0.12-compatibility || true
-          git clone --depth 1 https://github.com/kylemcdonald/ofxCv.git || true
+      - name: Cache build objects
+        uses: actions/cache@v4
+        with:
+          path: |
+            laser-tag-2026/obj
+            laser-tag-2026/lib/of_v0.12.1_linux64_release/libs/openFrameworksCompiled/lib
+          key: build-linux-${{ hashFiles('laser-tag-2026/src/**') }}
+          restore-keys: |
+            build-linux-
 
       - name: Update config.make for Linux
         run: |
@@ -64,33 +73,42 @@ jobs:
           path: laser-tag-2026/bin/laser-tag-2026-linux.tar.gz
 
   build-macos:
-    runs-on: macos-13
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Cache openFrameworks
+      - name: Cache openFrameworks + addons
         uses: actions/cache@v4
         id: cache-of
         with:
-          path: laser-tag-2026/lib/of_v0.12.1_osx_release
-          key: of-macos-0.12.1
+          path: |
+            laser-tag-2026/lib/of_v0.12.1_osx_release
+          key: of-macos-0.12.1-v2
 
       - name: Download openFrameworks
         if: steps.cache-of.outputs.cache-hit != 'true'
         run: |
           cd laser-tag-2026
           mkdir -p lib && cd lib
-          curl -LO https://github.com/openframeworks/openFrameworks/releases/download/0.12.1/of_v0.12.1_osx_release.tar.gz
-          tar -xzf of_v0.12.1_osx_release.tar.gz
-          rm of_v0.12.1_osx_release.tar.gz
+          curl -sfSL -o of.tar.gz https://github.com/openframeworks/openFrameworks/releases/download/0.12.1/of_v0.12.1_osx_release.tar.gz
+          tar -xzf of.tar.gz
+          rm of.tar.gz
+          # Install addons into OF directory (will be cached)
+          cd of_v0.12.1_osx_release/addons
+          git clone --depth 1 https://github.com/LeonFedotov/ofxGuiExtended.git -b of-0.12-compatibility
+          git clone --depth 1 https://github.com/kylemcdonald/ofxCv.git
 
-      - name: Install addons
-        run: |
-          cd laser-tag-2026/lib/of_v0.12.1_osx_release/addons
-          git clone --depth 1 https://github.com/LeonFedotov/ofxGuiExtended.git -b of-0.12-compatibility || true
-          git clone --depth 1 https://github.com/kylemcdonald/ofxCv.git || true
+      - name: Cache build objects
+        uses: actions/cache@v4
+        with:
+          path: |
+            laser-tag-2026/obj
+            laser-tag-2026/lib/of_v0.12.1_osx_release/libs/openFrameworksCompiled/lib
+          key: build-macos-${{ hashFiles('laser-tag-2026/src/**') }}
+          restore-keys: |
+            build-macos-
 
       - name: Build
         run: |
@@ -115,12 +133,13 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Cache openFrameworks
+      - name: Cache openFrameworks + addons
         uses: actions/cache@v4
         id: cache-of
         with:
-          path: laser-tag-2026/lib/of_v0.12.1_vs_64_release
-          key: of-windows-0.12.1
+          path: |
+            laser-tag-2026/lib/of_v0.12.1_vs_64_release
+          key: of-windows-0.12.1-v3
 
       - name: Download openFrameworks
         if: steps.cache-of.outputs.cache-hit != 'true'
@@ -132,31 +151,31 @@ jobs:
           Invoke-WebRequest -Uri "https://github.com/openframeworks/openFrameworks/releases/download/0.12.1/of_v0.12.1_vs_64_release.zip" -OutFile "of.zip"
           Expand-Archive -Path of.zip -DestinationPath .
           Remove-Item of.zip
-
-      - name: Install addons
-        shell: powershell
-        run: |
-          cd laser-tag-2026/lib/of_v0.12.1_vs_64_release/addons
+          # Install addons into OF directory (will be cached)
+          cd of_v0.12.1_vs_64_release/addons
           git clone --depth 1 https://github.com/LeonFedotov/ofxGuiExtended.git -b of-0.12-compatibility
           git clone --depth 1 https://github.com/kylemcdonald/ofxCv.git
 
-      - name: Generate VS project
+      - name: Cache build objects
+        uses: actions/cache@v4
+        with:
+          path: |
+            laser-tag-2026/obj
+            laser-tag-2026/lib/of_v0.12.1_vs_64_release/libs/openFrameworksCompiled/lib
+          key: build-windows-${{ hashFiles('laser-tag-2026/src/**') }}
+          restore-keys: |
+            build-windows-
+
+      - name: Create dll directory
         shell: powershell
         run: |
-          cd laser-tag-2026
-          # Create minimal vcxproj if not exists - use projectGenerator or manual setup
-          # For now, assume vcxproj exists from repo
+          New-Item -ItemType Directory -Force -Path laser-tag-2026/dll/x64
 
       - name: Build
         shell: cmd
         run: |
           cd laser-tag-2026
           "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe" laser-tag-2026.sln /p:Configuration=Release /p:Platform=x64 /m
-
-      - name: Create dll directory
-        shell: powershell
-        run: |
-          New-Item -ItemType Directory -Force -Path laser-tag-2026/dll/x64
 
       - name: Package
         shell: powershell

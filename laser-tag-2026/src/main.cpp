@@ -2,9 +2,7 @@
 #include "ofApp.h"
 #include "ofAppGLFWWindow.h"
 
-#ifdef _WIN32
-#include "GLFW/glfw3.h"
-#endif
+// GLFW header not needed - was causing Wine compatibility issues
 
 //========================================================================
 int main( ){
@@ -33,16 +31,6 @@ int main( ){
 
 	shared_ptr<ofAppBaseWindow> guiWindow = ofCreateWindow(settings);
 	guiWindow->setVerticalSync(false);
-
-#ifdef _WIN32
-	// Windows: Force the projector window to be visible
-	ofAppGLFWWindow* glfwWin = dynamic_cast<ofAppGLFWWindow*>(guiWindow.get());
-	if (glfwWin) {
-		GLFWwindow* win = glfwWin->getGLFWWindow();
-		glfwShowWindow(win);
-		glfwFocusWindow(win);
-	}
-#endif
 
 	shared_ptr<ofApp> mainApp(new ofApp);
 	mainApp->setupProjector();

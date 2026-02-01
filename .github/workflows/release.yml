@@ -58,6 +58,11 @@ jobs:
           cd laser-tag-2026
           sed -i 's|OF_ROOT = lib/of_v0.12.1_osx_release|OF_ROOT = lib/of_v0.12.1_linux64_gcc6_release|' config.make
 
+      - name: Patch ofxCv for GCC
+        run: |
+          cd laser-tag-2026/local_addons/ofxCv/libs/ofxCv/include/ofxCv
+          sed -i 's/Tracker<T>()/Tracker()/' Tracker.h
+
       - name: Build
         run: |
           cd laser-tag-2026

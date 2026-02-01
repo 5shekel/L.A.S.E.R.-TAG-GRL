@@ -264,9 +264,6 @@ void appController::clearProjectedImage() {
 //----------------------------------------------------
 void appController::mainLoop() {
 
-    float loopStart = ofGetElapsedTimef();
-    float t0;
-
     if(bSetupCamera){
         setupCamera();
         bSetupCamera = false;
@@ -278,10 +275,8 @@ void appController::mainLoop() {
     }
 
     //lets find dat laser!
-    t0 = ofGetElapsedTimef();
     trackLaser();
-    float trackTime = (ofGetElapsedTimef() - t0) * 1000.0f;
-    
+
     //if sending data is enabled
     //then lets send our data!
     if (SEND_DATA && tracker_.newData()) {
@@ -290,14 +285,10 @@ void appController::mainLoop() {
     //this deals with telling our brushes
     //all about the settings that are being
     //changed
-    t0 = ofGetElapsedTimef();
     manageMusic();
-    float musicTime = (ofGetElapsedTimef() - t0) * 1000.0f;
 
     //this is where we paint
-    t0 = ofGetElapsedTimef();
     managePainting();
-    float paintTime = (ofGetElapsedTimef() - t0) * 1000.0f;
 
     //if you have a crazy bright projector
     //and a weak laser - you might need to dim the
@@ -309,14 +300,7 @@ void appController::mainLoop() {
     //it will show the current setting for a few seconds
     if (ofGetElapsedTimeMillis() - keyTimer > STATUS_SHOW_TIME)keyTimer = 0;
 
-    // Note: VP.update() is already called in laserTracking - this may be redundant
     if (webMovieLoaded)VP.update();
-
-    // Log slow frames (>50ms total)
-    float loopTime = (ofGetElapsedTimef() - loopStart) * 1000.0f;
-    if(loopTime > 50.0f){
-        ofLogWarning("mainLoop") << "SLOW LOOP: " << loopTime << "ms (track:" << trackTime << " music:" << musicTime << " paint:" << paintTime << ")";
-    }
 }
 
 

@@ -217,3 +217,18 @@ jobs:
             macos-build/laser-tag-2026-macos.zip
             windows-build/laser-tag-2026-windows.zip
           generate_release_notes: true
+          body: |
+            ## Installation Notes
+
+            ### macOS
+            After downloading and extracting the zip, macOS may show "app is damaged" or block the app from opening. Run the following command in Terminal to fix this:
+            ```bash
+            xattr -cr /path/to/laser-tag-2026.app
+            ```
+            Then extract the zip again - the `data/` folder must be in the same directory as the `.app` bundle.
+
+            ### Windows
+            Extract the zip and run `laser-tag-2026.exe`. The `data/` folder must be in the same directory as the executable.
+
+            ### Linux
+            Extract the tarball and run `./laser-tag-2026`. The `data/` folder must be in the same directory as the executable.

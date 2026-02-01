@@ -2,22 +2,17 @@
 #include "ofApp.h"
 #include "ofAppGLFWWindow.h"
 
-// GLFW header not needed - was causing Wine compatibility issues
-
 //========================================================================
 int main( ){
 	ofGLFWWindowSettings settings;
 	settings.setSize(1280, 800);
 	settings.resizable = true;
 	shared_ptr<ofAppBaseWindow> mainWindow = ofCreateWindow(settings);
-	mainWindow->setVerticalSync(false);
 
 	settings.setSize(1280, 720);
 #ifdef _WIN32
-	// Windows: use fixed position for reliability
+	// Windows: use fixed position (avoids getScreenSize issues on Wine)
 	settings.setPosition(glm::vec2(100, 100));
-	settings.decorated = true;
-	// Don't share context on Windows - causes Wine crashes
 #else
 	// macOS/Linux: position based on screen size
 	glm::vec2 screenSize = mainWindow.get()->getScreenSize();
@@ -26,9 +21,9 @@ int main( ){
 	} else {
 		settings.setPosition(glm::vec2(0, 0));
 	}
-	settings.shareContextWith = mainWindow;
 #endif
 	settings.resizable = true;
+	settings.shareContextWith = mainWindow;
 
 	shared_ptr<ofAppBaseWindow> guiWindow = ofCreateWindow(settings);
 	guiWindow->setVerticalSync(false);

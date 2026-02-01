@@ -32,13 +32,13 @@ void appController::setup() {
     loadSettings();
     
     setupProjections();
-    imageProjection.loadSettings(ofToDataPath("settings/quadProj.xml"));
-    colorManager.loadColorSettings(ofToDataPath("settings/colors.xml"));
+    projection_.loadSettings(ofToDataPath("settings/quadProj.xml"));
+    colorMgr_.loadColorSettings(ofToDataPath("settings/colors.xml"));
     /////// GUI STUFF ////
     settingsImg.load("sys/settings.png");
     noticeImg.load("sys/criticalDontEditOrDelete.png");
     // Year logo removed - project now "laser-tag-2026"
-    laserTracking.useTrueTypeFont("fonts/courbd.ttf", 10);
+    tracker_.useTrueTypeFont("fonts/courbd.ttf", 10);
     
     //////// NETWORK SETUP ///
     setupNetwork();
@@ -48,7 +48,7 @@ void appController::setup() {
     } else {
         // Try video first, fall back to camera if video fails
         setupVideo();
-        if (!laserTracking.bVideoSetup) {
+        if (!tracker_.bVideoSetup) {
             ofLogNotice("appController") << "Video setup failed, falling back to camera";
             setupCamera();
         }
@@ -63,15 +63,15 @@ void appController::setup() {
     webMovieLoaded = false;
     
     //////// MUSIC PLAYER ////
-    trackPlayer.loadTracks(ofToDataPath("tunes/"));
+    player_.loadTracks(ofToDataPath("tunes/"));
 
     setupListeners();
 }
 
 void appController::setupProjections(){
-    imageProjection.setup(PROJECTION_W, PROJECTION_H);
+    projection_.setup(PROJECTION_W, PROJECTION_H);
     setupBrushes(PROJECTION_W, PROJECTION_H);
-    imageProjection.setToolDimensions(640, 360);
+    projection_.setToolDimensions(640, 360);
 }
 
 void appController::setupCamera(){
@@ -83,19 +83,19 @@ void appController::setupCamera(){
     //is what we asked for and if not lets update our settings
     //with the real dimensions
     
-    laserTracking.setupCamera(CAM_ID, camWidth, camHeight);
-    if (laserTracking.W != 0 && laserTracking.H != 0) {
-        camWidth = laserTracking.W;
-        camHeight = laserTracking.H;
+    tracker_.setupCamera(CAM_ID, camWidth, camHeight);
+    if (tracker_.W != 0 && tracker_.H != 0) {
+        camWidth = tracker_.W;
+        camHeight = tracker_.H;
         CAM_WIDTH = camWidth;
         CAM_HEIGHT = camHeight;
     }
-    laserTracking.setupCV(ofToDataPath("settings/quad.xml"));
+    tracker_.setupCV(ofToDataPath("settings/quad.xml"));
 }
 
 void appController::setupVideo(){
-    laserTracking.setupVideo("videos/lasertag_test_converted.mp4");
-    laserTracking.setupCV(ofToDataPath("settings/quad.xml"));
+    tracker_.setupVideo("videos/lasertag_test_converted.mp4");
+    tracker_.setupCV(ofToDataPath("settings/quad.xml"));
 }
 
 //-----------------------------------------------------------
@@ -284,7 +284,7 @@ void appController::mainLoop() {
     
     //if sending data is enabled
     //then lets send our data!
-    if (SEND_DATA && laserTracking.newData()) {
+    if (SEND_DATA && tracker_.newData()) {
         handleNetworkSending();
     }
     //this deals with telling our brushes
@@ -303,7 +303,7 @@ void appController::mainLoop() {
     //and a weak laser - you might need to dim the
     //projector - this method is for raster brushes
     //for gl brushes we do it in updateBrushSettings
-    imageProjection.setProjectionBrightness(PROJ_BRIGHTNESS);
+    projection_.setProjectionBrightness(PROJ_BRIGHTNESS);
 
     //this is for the singlescreen mode
     //it will show the current setting for a few seconds
@@ -329,18 +329,18 @@ void appController::setupNetwork() {
         ipStr += ofToString(IP_PT3) + ".";
         ipStr += ofToString(IP_PT4);
         
-        laserSending.setup(ipStr, PORT.get());
+        sender_.setup(ipStr, PORT.get());
     }
     else {
-        laserSending.close();
+        sender_.close();
         setCommonText("status: all network i/o closed");
     }
 }
 
 //----------------------------------------------------
 void appController::handleNetworkSending() {
-    if (laserSending.isSetup()) {
-        laserSending.sendData(laserTracking.laserX, laserTracking.laserY, laserTracking.isStrokeNew());
+    if (sender_.isSetup()) {
+        sender_.sendData(tracker_.laserX, tracker_.laserY, tracker_.isStrokeNew());
     }
 }
 
@@ -349,21 +349,21 @@ void appController::trackLaser() {
     
     //lets see if we need to update the clearZone
     
-    laserTracking.setUseClearZone(CLEAR_ZONE);
-    laserTracking.setClearZone(CLEAR_X, CLEAR_Y, CLEAR_W, CLEAR_H);
-    laserTracking.setClearThreshold(CLEAR_THRESH);
+    tracker_.setUseClearZone(CLEAR_ZONE);
+    tracker_.setClearZone(CLEAR_X, CLEAR_Y, CLEAR_W, CLEAR_H);
+    tracker_.setClearThreshold(CLEAR_THRESH);
     
     //lets process the video data to track that laser
-    laserTracking.processFrame(HUE_POINT, HUE_WIDTH, SAT_POINT, VAL_POINT, MIN_BLOB_SIZE, ACTIVITY, JUMP_DIST);
+    tracker_.processFrame(HUE_POINT, HUE_WIDTH, SAT_POINT, VAL_POINT, MIN_BLOB_SIZE, ACTIVITY, JUMP_DIST);
     
     //clear the images if the clear zone is hit
-    if (laserTracking.isClearZoneHit()) {
+    if (tracker_.isClearZoneHit()) {
         clearProjectedImage();
         setCommonText("status: clear zone hit - clearning image\n");
     }
     
     
-    laserTracking.calcColorRange(HUE_POINT, HUE_WIDTH, SAT_POINT, VAL_POINT);
+    tracker_.calcColorRange(HUE_POINT, HUE_WIDTH, SAT_POINT, VAL_POINT);
     
     
 }
@@ -375,11 +375,11 @@ void appController::onCameraChange(bool&b){
 
 void appController::onMusicChange(bool& b) {
     if (MUSIC) {
-        trackPlayer.unPause();
-        trackPlayer.setVolume(VOL);
+        player_.unPause();
+        player_.setVolume(VOL);
     }
     else {
-        trackPlayer.pause();
+        player_.pause();
     }
 }
 
@@ -396,34 +396,34 @@ void appController::manageMusic() {
     int whichTrack = TRACK;
 
     if (MUSIC) {
-        trackPlayer.unPause();
-        trackPlayer.setVolume(VOL);
+        player_.unPause();
+        player_.setVolume(VOL);
     }
     else {
-        trackPlayer.pause();
+        player_.pause();
     }
 
-    if (TRACK != trackPlayer.getCurrentTrackNo()) {
-        if (TRACK >= trackPlayer.getNumTracks()) {
+    if (TRACK != player_.getCurrentTrackNo()) {
+        if (TRACK >= player_.getNumTracks()) {
             TRACK = 0;
         }
-        trackPlayer.playTrack(whichTrack);
-        setCommonText("Playing: " + ofToString(trackPlayer.getCurrentTrackNo()) + " " + trackPlayer.getCurrentTrackName());
+        player_.playTrack(whichTrack);
+        setCommonText("Playing: " + ofToString(player_.getCurrentTrackNo()) + " " + player_.getCurrentTrackName());
     }
 
-    if (trackPlayer.getFinished()) {
-        whichTrack = trackPlayer.nextTrack();
-        setCommonText("Playing: " + ofToString(trackPlayer.getCurrentTrackNo()) + " " + trackPlayer.getCurrentTrackName());
+    if (player_.getFinished()) {
+        whichTrack = player_.nextTrack();
+        setCommonText("Playing: " + ofToString(player_.getCurrentTrackNo()) + " " + player_.getCurrentTrackName());
         TRACK = whichTrack;
     }
-    trackPlayer.setVolume(VOL);
+    player_.setVolume(VOL);
 }
 
 //----------------------------------------------------
 void appController::updateBrushSettings(bool first) {
     
-    colorManager.setCurrentColor(BRUSH_COLOR);
-    unsigned char* rgb = colorManager.getColor3I();
+    colorMgr_.setCurrentColor(BRUSH_COLOR);
+    unsigned char* rgb = colorMgr_.getColor3I();
     
     for (int i = 0; i < NUM_BRUSHES; i++) {
         brushes[i]->dripsSettings(DRIPS, DRIPS_FREQ, DRIPS_SPEED, DRIP_DIRECTION, DRIP_WIDTH);
@@ -434,7 +434,7 @@ void appController::updateBrushSettings(bool first) {
         brushes[i]->setBrushBrightness(PROJ_BRIGHTNESS);
     }
     
-    imageProjection.setProjectionColor(rgb[0], rgb[1], rgb[2]);
+    projection_.setProjectionColor(rgb[0], rgb[1], rgb[2]);
 }
 
 //----------------------------------------------------
@@ -442,21 +442,21 @@ void appController::managePainting() {
 
     //time to paint!
     //but only if we have got data
-    if (laserTracking.newData()) {
+    if (tracker_.newData()) {
 
-        float laserX = laserTracking.laserX;
-        float laserY = laserTracking.laserY;
+        float laserX = tracker_.laserX;
+        float laserY = tracker_.laserY;
 
         //if our brush is a vector brush we need
         //to warp the coords as we are not
         //texture warping
         if (brushes[BRUSH_MODE]->getIsVector()) {
-            laserTracking.getWarpedCoordinates(imageProjection.getQuadPoints(), &laserX, &laserY);
+            tracker_.getWarpedCoordinates(projection_.getQuadPoints(), &laserX, &laserY);
         }
 
-        brushes[BRUSH_MODE]->addPoint(laserX, laserY, laserTracking.isStrokeNew());
+        brushes[BRUSH_MODE]->addPoint(laserX, laserY, tracker_.isStrokeNew());
 
-        laserTracking.clearNewStroke();
+        tracker_.clearNewStroke();
     }
 
     //idle our current brush
@@ -478,10 +478,10 @@ void appController::managePainting() {
 
 
     if (brushes[BRUSH_MODE]->getIsColor()) {
-        imageProjection.setColorTexture(brushes[BRUSH_MODE]->getTexture());
+        projection_.setColorTexture(brushes[BRUSH_MODE]->getTexture());
     }
     else {
-        imageProjection.setGrayTexture(brushes[BRUSH_MODE]->getTexture());
+        projection_.setGrayTexture(brushes[BRUSH_MODE]->getTexture());
     }
 
 }
@@ -498,8 +498,8 @@ void appController::saveSettings() {
     network_panel->saveToFile(ofToDataPath("settings/network_settings.xml"));
     music_panel->saveToFile(ofToDataPath("settings/music_settings.xml"));
     camera_panel->saveToFile(ofToDataPath("settings/camera_settings.xml"));
-    laserTracking.QUAD.saveToFile(ofToDataPath("settings/quad.xml"));
-    imageProjection.QUAD.saveToFile(ofToDataPath("settings/quadProj.xml"));
+    tracker_.QUAD.saveToFile(ofToDataPath("settings/quad.xml"));
+    projection_.QUAD.saveToFile(ofToDataPath("settings/quadProj.xml"));
     
     setCommonText("status: settings saved to xml");
 }
@@ -516,8 +516,8 @@ void appController::reloadSettings() {
     network_panel->loadFromFile(ofToDataPath("settings/network_settings.xml"));
     music_panel->loadFromFile(ofToDataPath("settings/music_settings.xml"));
     camera_panel->loadFromFile(ofToDataPath("settings/camera_settings.xml"));
-    laserTracking.QUAD.loadSettings();
-    imageProjection.loadSettings(ofToDataPath("settings/quadProj.xml"));
+    tracker_.QUAD.loadSettings();
+    projection_.loadSettings(ofToDataPath("settings/quadProj.xml"));
     
     setCommonText("status: settings reloaded from xml");
     
@@ -525,29 +525,29 @@ void appController::reloadSettings() {
 
 //----------------------------------------------------
 void appController::selectPoint(float x, float y) {
-    laserTracking.QUAD.selectPoint(x, y, noticeImg.getWidth(), 10, 320, 240, 60);
-    imageProjection.selectMiniQuad(x, y, 60);
-    imageProjection.updateMiniQuad(x, y);
+    tracker_.QUAD.selectPoint(x, y, noticeImg.getWidth(), 10, 320, 240, 60);
+    projection_.selectMiniQuad(x, y, 60);
+    projection_.updateMiniQuad(x, y);
 }
 
 void appController::selectPointProjector(float x, float y, float width, float height){
-    imageProjection.selectQuad(x, y, 0, 0, width, height, 60);
+    projection_.selectQuad(x, y, 0, 0, width, height, 60);
 }
 
 void appController::dragPoint(float x, float y) {
-   laserTracking.QUAD.updatePoint(x, y, noticeImg.getWidth(), 10, 320, 240);
-   imageProjection.updateMiniQuad(x, y);
+   tracker_.QUAD.updatePoint(x, y, noticeImg.getWidth(), 10, 320, 240);
+   projection_.updateMiniQuad(x, y);
 }
 
 //----------------------------------------------------
 void appController::dragPointProjector(float x, float y, float width, float height) {
-    imageProjection.updateQuad(x, y, 0, 0, width, height);
+    projection_.updateQuad(x, y, 0, 0, width, height);
 }
 
 //----------------------------------------------------
 void appController::releasePoint() {
-    laserTracking.QUAD.releaseAllPoints();
-    imageProjection.releaseAllQuads();
+    tracker_.QUAD.releaseAllPoints();
+    projection_.releaseAllQuads();
 }
 
 //----------------------------------------------------
@@ -598,7 +598,7 @@ void appController::drawProjector() {
     
     //if we are a vector brush
     
-    imageProjection.drawProjectionTex(0, 0, ofGetWindowWidth(), ofGetWindowHeight());
+    projection_.drawProjectionTex(0, 0, ofGetWindowWidth(), ofGetWindowHeight());
     
     
     if (webMovieLoaded) {
@@ -608,7 +608,7 @@ void appController::drawProjector() {
   
     
     if (toggleGui || SHOW_CHECKERBOARD){
-        imageProjection.drawProjectionToolHandles(0, 0, ofGetWindowWidth(), ofGetWindowHeight(), false, true);
+        projection_.drawProjectionToolHandles(0, 0, ofGetWindowWidth(), ofGetWindowHeight(), false, true);
         drawCheckerBoard();
     }
     ofPopStyle();
@@ -622,13 +622,13 @@ void appController::drawGUI() {
 
     noticeImg.draw(0, LOGICAL_HEIGHT-noticeImg.getHeight()-16);
 
-    laserTracking.draw(noticeImg.getWidth(), 10);
+    tracker_.draw(noticeImg.getWidth(), 10);
 
     ofPushMatrix();
     {
         ofTranslate(camera_panel->getWidth()+tracking_panel->getWidth(), brush_panel->getHeight()+drip_panel->getHeight());
         drawText("Colors tracked", 10, 23);
-        laserTracking.drawColorRange(10, 29, 120, 44);
+        tracker_.drawColorRange(10, 29, 120, 44);
 
         ofSetColor(255, 255, 255);
 
@@ -640,11 +640,11 @@ void appController::drawGUI() {
         }
 
         drawText("Brush color", 10, 159);
-        colorManager.drawColorPanel(10, 164, 128, 24, 5);
+        colorMgr_.drawColorPanel(10, 164, 128, 24, 5);
     }
     ofPopMatrix();
 
-    imageProjection.drawMiniProjectionTool(noticeImg.getWidth(), 250, true, true);
+    projection_.drawMiniProjectionTool(noticeImg.getWidth(), 250, true, true);
 
     //make sure we have a black background
     drawStatusMessage();
@@ -695,7 +695,7 @@ void appController::drawCheckerBoard(){
     checkerboardFBO.end();
     
     ofPushMatrix();
-    ofMultMatrix(imageProjection.matrix);
+    ofMultMatrix(projection_.matrix);
     ofSetColor(255, 255, 255);
     checkerboardFBO.draw(0, 0);
     ofPopMatrix();
@@ -745,6 +745,6 @@ void appController::onClear(bool & b){
 
 void appController::exit(){
     if(MUSIC){
-        trackPlayer.stop();
+        player_.stop();
     }
 }

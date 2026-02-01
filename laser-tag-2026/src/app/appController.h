@@ -67,19 +67,19 @@ protected:
     void drawCheckerBoard();
     
     ofFbo checkerboardFBO;
-    colorManager colorManager;
-    
+    colorManager colorMgr_;
+
     ofVideoPlayer VP;
     bool webMovieLoaded;
-    
+
     //an array of our base brush class
     baseBrush * brushes[NUM_BRUSHES];
-    
+
     //other stuff
-    laserTracking laserTracking;
-    laserSending  laserSending;
-    imageProjection imageProjection;
-    trackPlayer trackPlayer;
+    laserTracking tracker_;
+    laserSending  sender_;
+    imageProjection projection_;
+    trackPlayer player_;
     
     bool toggleGui, full, singleScreenMode, callibration, bInverted;
     int camWidth, camHeight, keyTimer;

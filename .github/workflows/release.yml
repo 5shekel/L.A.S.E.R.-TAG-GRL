@@ -38,6 +38,8 @@ jobs:
       - name: Install OF dependencies
         run: |
           sudo apt-get update
+          # Install libunwind-dev first (required by gstreamer)
+          sudo apt-get install -y libunwind-dev
           cd laser-tag-2026/lib/of_v0.12.1_linux64_gcc6_release/scripts/linux/ubuntu
           yes | sudo ./install_dependencies.sh || true
 

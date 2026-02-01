@@ -77,14 +77,29 @@ jobs:
         run: |
           cd laser-tag-2026/bin
           mkdir -p libs
-          # Bundle OpenCV and other required libraries
+          # Bundle all non-core-system libraries
           ldd laser-tag-2026 | grep "=> /" | awk '{print $3}' | while read lib; do
-            # Copy OpenCV, OpenFrameworks, and other non-system libs
+            # Skip only core system libs (libc, libm, libpthread, libdl, ld-linux, libstdc++)
             case "$lib" in
-              */libopencv*|*/libof*|*/libfreeimage*|*/libpugixml*|*/liburiparser*|*/libglfw*)
-                cp -L "$lib" libs/
+              */libc.so*|*/libm.so*|*/libpthread*|*/libdl*|*/ld-linux*|*/libstdc++*|*/libgcc_s*)
+                # Skip core system libraries
+                ;;
+              *)
+                cp -L "$lib" libs/ 2>/dev/null || true
                 ;;
             esac
+          done
+          # Also grab indirect dependencies of copied libs
+          for lib in libs/*.so*; do
+            ldd "$lib" 2>/dev/null | grep "=> /" | awk '{print $3}' | while read dep; do
+              case "$dep" in
+                */libc.so*|*/libm.so*|*/libpthread*|*/libdl*|*/ld-linux*|*/libstdc++*|*/libgcc_s*)
+                  ;;
+                *)
+                  [ ! -f "libs/$(basename $dep)" ] && cp -L "$dep" libs/ 2>/dev/null || true
+                  ;;
+              esac
+            done
           done
           # Create launcher script
           cat > run.sh << 'LAUNCHER'

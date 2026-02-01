@@ -17,6 +17,7 @@ int main( ){
 	// Windows: use fixed position for reliability
 	settings.setPosition(glm::vec2(100, 100));
 	settings.decorated = true;
+	// Don't share context on Windows - causes Wine crashes
 #else
 	// macOS/Linux: position based on screen size
 	glm::vec2 screenSize = mainWindow.get()->getScreenSize();
@@ -25,9 +26,9 @@ int main( ){
 	} else {
 		settings.setPosition(glm::vec2(0, 0));
 	}
+	settings.shareContextWith = mainWindow;
 #endif
 	settings.resizable = true;
-	settings.shareContextWith = mainWindow;
 
 	shared_ptr<ofAppBaseWindow> guiWindow = ofCreateWindow(settings);
 	guiWindow->setVerticalSync(false);

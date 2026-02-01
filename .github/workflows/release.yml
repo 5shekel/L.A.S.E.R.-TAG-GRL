@@ -63,6 +63,11 @@ jobs:
           cd laser-tag-2026/local_addons/ofxCv/libs/ofxCv/include/ofxCv
           sed -i 's/Tracker<T>()/Tracker()/' Tracker.h
 
+      - name: Patch OF for missing memory header
+        run: |
+          cd laser-tag-2026/lib/of_v0.12.1_linux64_gcc6_release/libs/openFrameworks/types
+          sed -i '1i #include <memory>' ofTypes.h
+
       - name: Build
         run: |
           cd laser-tag-2026
@@ -125,7 +130,7 @@ jobs:
       - name: Package
         run: |
           cd laser-tag-2026/bin
-          zip -r laser-tag-2026-macos.zip laser-tag-2026.app
+          zip -r laser-tag-2026-macos.zip laser-tag-2026.app data/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

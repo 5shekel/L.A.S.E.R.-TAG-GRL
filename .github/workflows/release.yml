@@ -19,7 +19,7 @@ jobs:
         id: cache-of
         with:
           path: |
-            laser-tag-2026/lib/of_v0.12.1_linux64_release
+            laser-tag-2026/lib/of_v0.12.1_linux64_gcc6_release
           key: of-linux-0.12.1-v2
 
       - name: Download openFrameworks
@@ -27,18 +27,18 @@ jobs:
         run: |
           cd laser-tag-2026
           mkdir -p lib && cd lib
-          curl -sfSL -o of.tar.gz https://github.com/openframeworks/openFrameworks/releases/download/0.12.1/of_v0.12.1_linux64_release.tar.gz
+          curl -sfSL -o of.tar.gz https://github.com/openframeworks/openFrameworks/releases/download/0.12.1/of_v0.12.1_linux64_gcc6_release.tar.gz
           tar -xzf of.tar.gz
           rm of.tar.gz
           # Install addons into OF directory (will be cached)
-          cd of_v0.12.1_linux64_release/addons
+          cd of_v0.12.1_linux64_gcc6_release/addons
           git clone --depth 1 https://github.com/LeonFedotov/ofxGuiExtended.git -b of-0.12-compatibility
           git clone --depth 1 https://github.com/kylemcdonald/ofxCv.git
 
       - name: Install OF dependencies
         run: |
           sudo apt-get update
-          cd laser-tag-2026/lib/of_v0.12.1_linux64_release/scripts/linux/ubuntu
+          cd laser-tag-2026/lib/of_v0.12.1_linux64_gcc6_release/scripts/linux/ubuntu
           yes | sudo ./install_dependencies.sh || true
 
       - name: Cache build objects
@@ -46,7 +46,7 @@ jobs:
         with:
           path: |
             laser-tag-2026/obj
-            laser-tag-2026/lib/of_v0.12.1_linux64_release/libs/openFrameworksCompiled/lib
+            laser-tag-2026/lib/of_v0.12.1_linux64_gcc6_release/libs/openFrameworksCompiled/lib
           key: build-linux-${{ hashFiles('laser-tag-2026/src/**') }}
           restore-keys: |
             build-linux-
@@ -54,7 +54,7 @@ jobs:
       - name: Update config.make for Linux
         run: |
           cd laser-tag-2026
-          sed -i 's|OF_ROOT = lib/of_v0.12.1_osx_release|OF_ROOT = lib/of_v0.12.1_linux64_release|' config.make
+          sed -i 's|OF_ROOT = lib/of_v0.12.1_osx_release|OF_ROOT = lib/of_v0.12.1_linux64_gcc6_release|' config.make
 
       - name: Build
         run: |

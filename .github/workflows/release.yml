@@ -73,49 +73,72 @@ jobs:
           cd laser-tag-2026
           make Release -j$(nproc)
 
-      - name: Package
+      - name: Package as Debian package
         run: |
-          cd laser-tag-2026/bin
-          mkdir -p libs
-          # Bundle all non-core-system libraries
-          ldd laser-tag-2026 | grep "=> /" | awk '{print $3}' | while read lib; do
-            # Skip only core system libs (libc, libm, libpthread, libdl, ld-linux, libstdc++)
-            case "$lib" in
-              */libc.so*|*/libm.so*|*/libpthread*|*/libdl*|*/ld-linux*|*/libstdc++*|*/libgcc_s*)
-                # Skip core system libraries
-                ;;
-              *)
-                cp -L "$lib" libs/ 2>/dev/null || true
-                ;;
-            esac
-          done
-          # Also grab indirect dependencies of copied libs
-          for lib in libs/*.so*; do
-            ldd "$lib" 2>/dev/null | grep "=> /" | awk '{print $3}' | while read dep; do
-              case "$dep" in
-                */libc.so*|*/libm.so*|*/libpthread*|*/libdl*|*/ld-linux*|*/libstdc++*|*/libgcc_s*)
-                  ;;
-                *)
-                  [ ! -f "libs/$(basename $dep)" ] && cp -L "$dep" libs/ 2>/dev/null || true
-                  ;;
-              esac
-            done
-          done
-          # Create launcher script
-          cat > run.sh << 'LAUNCHER'
+          cd laser-tag-2026
+          VERSION=$(date +%Y.%m.%d)
+          PKG_DIR=laser-tag-2026_${VERSION}_amd64
+
+          # Create debian package structure
+          mkdir -p ${PKG_DIR}/DEBIAN
+          mkdir -p ${PKG_DIR}/usr/bin
+          mkdir -p ${PKG_DIR}/usr/share/laser-tag-2026
+          mkdir -p ${PKG_DIR}/usr/share/applications
+          mkdir -p ${PKG_DIR}/usr/share/icons/hicolor/256x256/apps
+
+          # Copy binary and data
+          cp bin/laser-tag-2026 ${PKG_DIR}/usr/bin/
+          cp -r bin/data ${PKG_DIR}/usr/share/laser-tag-2026/
+
+          # Create wrapper script that sets working directory
+          cat > ${PKG_DIR}/usr/bin/laser-tag-2026-launcher << 'LAUNCHER'
           #!/bin/bash
-          DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-          export LD_LIBRARY_PATH="$DIR/libs:$LD_LIBRARY_PATH"
-          exec "$DIR/laser-tag-2026" "$@"
+          cd /usr/share/laser-tag-2026
+          exec /usr/bin/laser-tag-2026 "$@"
           LAUNCHER
-          chmod +x run.sh
-          tar -czvf laser-tag-2026-linux.tar.gz laser-tag-2026 run.sh libs/ data/
+          chmod +x ${PKG_DIR}/usr/bin/laser-tag-2026-launcher
+
+          # Create desktop entry
+          cat > ${PKG_DIR}/usr/share/applications/laser-tag-2026.desktop << 'DESKTOP'
+          [Desktop Entry]
+          Name=Laser Tag 2026
+          Comment=Interactive laser graffiti installation
+          Exec=laser-tag-2026-launcher
+          Terminal=false
+          Type=Application
+          Categories=Graphics;Art;
+          DESKTOP
+
+          # Create control file with dependencies
+          cat > ${PKG_DIR}/DEBIAN/control << CONTROL
+          Package: laser-tag-2026
+          Version: ${VERSION}
+          Section: graphics
+          Priority: optional
+          Architecture: amd64
+          Depends: libopencv-core4.5d, libopencv-imgproc4.5d, libopencv-video4.5d, libopencv-videoio4.5d, libglfw3, libfreeimage3, libpugixml1v5, liburiparser1, libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, libasound2, libpulse0, libgtk-3-0, libcurl4
+          Maintainer: GRL <info@graffitiresearchlab.com>
+          Description: Laser Tag 2026 - Interactive laser graffiti
+           An interactive art installation that uses computer vision
+           to track laser pointers, allowing users to paint on
+           projected surfaces using lasers as brushes.
+          CONTROL
+
+          # Build the package
+          dpkg-deb --build ${PKG_DIR}
+          mv ${PKG_DIR}.deb bin/laser-tag-2026-linux.deb
+
+          # Also create tarball for non-Debian systems
+          cd bin
+          tar -czvf laser-tag-2026-linux.tar.gz laser-tag-2026 data/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: laser-tag-2026/bin/laser-tag-2026-linux.tar.gz
+          path: |
+            laser-tag-2026/bin/laser-tag-2026-linux.deb
+            laser-tag-2026/bin/laser-tag-2026-linux.tar.gz
 
   build-macos:
     runs-on: macos-14
@@ -246,6 +269,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
+            linux-build/laser-tag-2026-linux.deb
             linux-build/laser-tag-2026-linux.tar.gz
             macos-build/laser-tag-2026-macos.zip
             windows-build/laser-tag-2026-windows.zip
@@ -263,5 +287,14 @@ jobs:
             ### Windows
             Extract the zip and run `laser-tag-2026.exe`. The `data/` folder must be in the same directory as the executable.
 
-            ### Linux
-            Extract the tarball and run `./run.sh` (this sets up library paths). The `data/` folder must be in the same directory.
+            ### Linux (Debian/Ubuntu)
+            Install the .deb package - it will automatically install all required dependencies:
+            ```bash
+            sudo dpkg -i laser-tag-2026-linux.deb
+            sudo apt-get install -f  # Install any missing dependencies
+            laser-tag-2026-launcher
+            ```
+
+            ### Linux (Other distros)
+            Use the tarball and install dependencies manually:
+            - OpenCV 4.5+, GLFW3, FreeImage, PugiXML, URIParser, GStreamer, ALSA, PulseAudio, GTK3, cURL

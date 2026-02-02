@@ -128,17 +128,11 @@ jobs:
           dpkg-deb --build ${PKG_DIR}
           mv ${PKG_DIR}.deb bin/laser-tag-2026-linux.deb
 
-          # Also create tarball for non-Debian systems
-          cd bin
-          tar -czvf laser-tag-2026-linux.tar.gz laser-tag-2026 data/
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: |
-            laser-tag-2026/bin/laser-tag-2026-linux.deb
-            laser-tag-2026/bin/laser-tag-2026-linux.tar.gz
+          path: laser-tag-2026/bin/laser-tag-2026-linux.deb
 
   build-macos:
     runs-on: macos-14
@@ -270,7 +264,6 @@ jobs:
         with:
           files: |
             linux-build/laser-tag-2026-linux.deb
-            linux-build/laser-tag-2026-linux.tar.gz
             macos-build/laser-tag-2026-macos.zip
             windows-build/laser-tag-2026-windows.zip
           generate_release_notes: true
@@ -288,13 +281,8 @@ jobs:
             Extract the zip and run `laser-tag-2026.exe`. The `data/` folder must be in the same directory as the executable.
 
             ### Linux (Debian/Ubuntu)
-            Install the .deb package - it will automatically install all required dependencies:
             ```bash
             sudo dpkg -i laser-tag-2026-linux.deb
-            sudo apt-get install -f  # Install any missing dependencies
+            sudo apt-get install -f  # Install dependencies
             laser-tag-2026-launcher
             ```
-
-            ### Linux (Other distros)
-            Use the tarball and install dependencies manually:
-            - OpenCV 4.5+, GLFW3, FreeImage, PugiXML, URIParser, GStreamer, ALSA, PulseAudio, GTK3, cURL

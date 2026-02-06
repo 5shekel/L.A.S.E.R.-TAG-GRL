@@ -782,6 +782,45 @@ export class AppController {
   }
 
   /**
+   * Sample a pixel from the camera capture and return its HSV value (OpenCV format)
+   * @param {number} x - X in camera pixel coordinates
+   * @param {number} y - Y in camera pixel coordinates
+   * @returns {{h: number, s: number, v: number}|null} HSV values (H: 0-180, S: 0-255, V: 0-255)
+   */
+  samplePixelHSV(x, y) {
+    if (!this.captureCanvas || !this.captureCtx) return null;
+
+    const cx = Math.round(Math.max(0, Math.min(x, this.captureCanvas.width - 1)));
+    const cy = Math.round(Math.max(0, Math.min(y, this.captureCanvas.height - 1)));
+
+    const pixel = this.captureCtx.getImageData(cx, cy, 1, 1).data;
+    const r = pixel[0], g = pixel[1], b = pixel[2];
+
+    // Convert RGB to HSV (OpenCV convention: H 0-180, S 0-255, V 0-255)
+    const rn = r / 255, gn = g / 255, bn = b / 255;
+    const max = Math.max(rn, gn, bn);
+    const min = Math.min(rn, gn, bn);
+    const delta = max - min;
+
+    let h = 0;
+    if (delta > 0) {
+      if (max === rn) h = 60 * (((gn - bn) / delta) % 6);
+      else if (max === gn) h = 60 * ((bn - rn) / delta + 2);
+      else h = 60 * ((rn - gn) / delta + 4);
+    }
+    if (h < 0) h += 360;
+
+    const s = max === 0 ? 0 : delta / max;
+    const v = max;
+
+    return {
+      h: Math.round(h / 2),     // 0-360 → 0-180 (OpenCV)
+      s: Math.round(s * 255),
+      v: Math.round(v * 255)
+    };
+  }
+
+  /**
    * Handle window resize
    */
   handleResize() {

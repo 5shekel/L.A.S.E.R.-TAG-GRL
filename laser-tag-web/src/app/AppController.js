@@ -348,6 +348,19 @@ export class AppController {
     const imageData = this.camera.getFrame(this.captureCtx);
     if (!imageData) return;
 
+    // Update tracker ROI from camera calibration quad
+    // During calibration, update every frame (quad corners are being dragged).
+    // Otherwise, update only once after init or when calibration ends.
+    if (this.cameraCalibration.isCalibrating || !this._roiInitialized) {
+      this.tracker.setROI(this.cameraCalibration.getSourceQuad());
+      this._roiInitialized = true;
+      this._roiNeedsUpdate = true;
+    } else if (this._roiNeedsUpdate) {
+      // One final update after calibration mode exits
+      this.tracker.setROI(this.cameraCalibration.getSourceQuad());
+      this._roiNeedsUpdate = false;
+    }
+
     // Process frame with tracker
     this.tracker.processFrame(imageData);
 

@@ -162,6 +162,17 @@ export class AppController {
       this.projectorCloneCanvas = elements.projectorCloneCanvas;
     }
 
+    // Set up warped camera canvas if available (perspective-corrected camera preview)
+    if (elements.warpedCameraCanvas) {
+      elements.warpedCameraCanvas.width = this.camera.width;
+      elements.warpedCameraCanvas.height = this.camera.height;
+      this.renderingPipeline.setWarpedCameraCanvas(elements.warpedCameraCanvas);
+      this.warpedCameraCanvas = elements.warpedCameraCanvas;
+    }
+
+    // Give rendering pipeline access to debug canvas for warped camera preview
+    this.renderingPipeline.setDebugCanvas(this.debugCanvas);
+
     console.log('AppController initialized');
     return true;
   }
@@ -260,6 +271,18 @@ export class AppController {
         if (cloneRect.width > 0 && cloneRect.height > 0) {
           this.projectorCloneCanvas.width = cloneRect.width;
           this.projectorCloneCanvas.height = cloneRect.height;
+        }
+      }
+    }
+
+    // Resize warped camera canvas
+    if (this.warpedCameraCanvas) {
+      const warpedContainer = this.warpedCameraCanvas.parentElement;
+      if (warpedContainer) {
+        const warpedRect = warpedContainer.getBoundingClientRect();
+        if (warpedRect.width > 0 && warpedRect.height > 0) {
+          this.warpedCameraCanvas.width = warpedRect.width;
+          this.warpedCameraCanvas.height = warpedRect.height;
         }
       }
     }

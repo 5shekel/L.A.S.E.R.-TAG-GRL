@@ -56,6 +56,7 @@ async function initApp() {
       projectorCanvas: document.getElementById('projector-canvas'),
       projectorCloneCanvas: document.getElementById('projector-clone-canvas'),
       debugCanvas: document.getElementById('debug-canvas'),
+      warpedCameraCanvas: document.getElementById('warped-camera-canvas'),
       videoElement: document.getElementById('video-element')
     };
 
